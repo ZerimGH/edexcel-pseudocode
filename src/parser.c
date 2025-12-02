@@ -185,10 +185,8 @@ https://en.wikipedia.org/wiki/Shunting_yard_algorithm#The_algorithm_in_detail
 while there are tokens to be read:
     read a token
     if the token is:
-    - a number:
+    - a number or variable:
         put it into the output queue
-    - a function:
-        push it onto the operator stack 
     - an operator o1:
         while (
             there is an operator o2 at the top of the operator stack which is not a left parenthesis, 
@@ -196,9 +194,6 @@ while there are tokens to be read:
         ):
             pop o2 from the operator stack into the output queue
         push o1 onto the operator stack
-    - a ",":
-        while the operator at the top of the operator stack is not a left parenthesis:
-             pop the operator from the operator stack into the output queue
     - a left parenthesis (i.e. "("):
         push it onto the operator stack
     - a right parenthesis (i.e. ")"):
@@ -207,8 +202,6 @@ while there are tokens to be read:
             pop the operator from the operator stack into the output queue
         {assert there is a left parenthesis at the top of the operator stack}
         pop the left parenthesis from the operator stack and discard it
-        if there is a function token at the top of the operator stack, then:
-            pop the function from the operator stack into the output queue
 while there are tokens on the operator stack:
     {assert the operator on top of the stack is not a (left) parenthesis}
     pop the operator from the operator stack onto the output queue

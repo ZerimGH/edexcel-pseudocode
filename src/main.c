@@ -37,6 +37,7 @@ char *read_file_str(char *file_dir) {
   }
 
   out[file_len] = '\0';
+  fclose(file);
   return out;
 }
 
