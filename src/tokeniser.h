@@ -4,7 +4,35 @@
 
 #include <stddef.h>
 
-typedef enum { TokenInteger, TokenReal, TokenBoolean, TokenCharacter, TokenSet, TokenTo, TokenIdentifier, TokenIntLit } TokenType;
+typedef enum {
+  // Datatype keywords
+  TokenInteger, // INTEGER
+  TokenReal, // REAL
+  TokenBoolean, // BOOLEAN
+  TokenCharacter, // CHARACTER
+  // Action ? keywods
+  TokenSet, // SET
+  TokenTo, // TO
+  // Operators
+  // Arithmetic
+  TokenAdd, // +
+  TokenSubtract, // -
+  TokenDivide, // /
+  TokenMultiply, // *
+  TokenExponent, // ^
+  TokenModulo, // MOD
+  TokenIntDiv, // DIV
+  // Relational
+  TokenEqualTo, // =
+  TokenNEqualTo, // <> lmao wtf is this
+  TokenGreaterThan, // >
+  TokenGreaterThanEq, // >=
+  TokenLessThan, // <
+  TokenLessThanEq, // <=
+  // Other things
+  TokenIdentifier, // MyValue, myValue, My_Value, Counter2
+  TokenIntLit // 1, -1, 1234 
+} TokenType;
 
 typedef struct {
   TokenType type;
