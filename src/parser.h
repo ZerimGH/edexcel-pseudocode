@@ -15,7 +15,6 @@ typedef struct ASTNode {
     struct {
       struct ASTNode **nodes;
       size_t count;
-      size_t alloced;
     } program;
 
     // Variable declarations
@@ -49,5 +48,6 @@ typedef struct {
 
 Parser *parse(Tokeniser *tokeniser);
 void parser_destroy(Parser **parser);
+void parser_dump(Parser *parser);
 
 #endif

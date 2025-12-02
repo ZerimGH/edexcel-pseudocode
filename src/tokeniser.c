@@ -322,13 +322,12 @@ void tokeniser_dump(Tokeniser *tokeniser) {
   for(size_t i = 0; i < tokeniser->count; i++) {
     printf("    ");
     token_print(tokeniser->tokens[i]);
-    if(i < tokeniser->count - 1) putchar(',');
     putchar('\n');
   }
-  printf("  };\n");
-  printf("  size_t count = %zu;\n", tokeniser->count);
-  printf("  size_t alloced = %zu;\n", tokeniser->alloced);
-  printf("  int status = %d;\n", tokeniser->status);
-  printf("  size_t read = %zu;\n", tokeniser->read);
+  printf("  }\n");
+  printf("  size_t count = %zu\n", tokeniser->count);
+  printf("  size_t alloced = %zu\n", tokeniser->alloced);
+  printf("  int status = %d\n", tokeniser->status);
+  printf("  size_t read = %zu\n", tokeniser->read);
   printf("}\n");
 }

@@ -291,7 +291,6 @@ Parser *parse(Tokeniser *tokeniser) {
     }
     parser_append_statement(parser, stmt);
   }
-  printf("done!\n");
 
   // Check for error
   if(parser->status != 0) {
@@ -315,4 +314,75 @@ Parser *parse(Tokeniser *tokeniser) {
   parser->count = 0;
 
   return parser;
+}
+
+static inline void print_indent(size_t indent) {
+  for(size_t i = 0; i < indent; i++) putchar(' ');
+}
+
+static const char *var_type_to_str(VarType type) {
+  switch(type) {
+    case VarInteger: return "VarInteger";
+    case VarReal: return "VarReal";
+    case VarBoolean: return "VarBoolean";
+    case VarCharacter: return "VarCharacter";
+    default: return "?";
+  }
+}
+
+static void node_print(ASTNode *node, size_t indent, int indent_head) {
+  if(indent_head) { print_indent(indent); } printf("(ASTNode) {\n");
+  switch(node->type) {
+    case NodeProgram:
+      print_indent(indent); printf("  NodeType type = NodeProgram\n");
+      print_indent(indent); printf("  program.nodes = {\n");
+      for(size_t i = 0; i < node->program.count; i++) {
+        node_print(node->program.nodes[i], indent + 4, 1);
+      }
+      print_indent(indent); printf("  }\n");
+      print_indent(indent); printf("  program.count = %zu\n", node->program.count);
+      break;
+    case NodeVarDecl:
+      print_indent(indent); printf("  NodeType type = NodeVarDecl\n");
+      print_indent(indent); printf("  var_decl.type = %s\n", var_type_to_str(node->var_decl.type));
+      print_indent(indent); printf("  var_decl.id = \"%s\"\n", node->var_decl.id);
+      break;
+    case NodeVarAssign:
+      print_indent(indent); printf("  NodeType type = NodeVarAssign\n");
+      print_indent(indent); printf("  var_assign.id = \"%s\"\n", node->var_assign.id);
+      print_indent(indent); printf("  var_assign.expr = ");
+      node_print(node->var_assign.expr, indent + 2, 0);
+      break;
+    case NodeExpr:
+      print_indent(indent); printf("  NodeType type = NodeExpr\n");
+      print_indent(indent); printf("  expr.integer_val = %d\n", node->expr.integer_val);
+      break;
+    default: print_indent(indent); printf("?\n"); break;
+  }
+  print_indent(indent); printf("}\n");
+}
+
+void parser_dump(Parser *parser) {
+  if(!parser) {
+    printf("(null)\n");
+    return;
+  }
+
+  printf("(Parser) {\n");
+  if(parser->statements) {
+    printf("  ASTNode **statements = {\n");
+    for(size_t i = 0; i < parser->count; i++) {
+      node_print(parser->statements[i], 4, 1);  
+    }
+    printf("  }\n");
+  } else {
+    printf("  ASTNode **statements = (null)\n");
+  }
+  printf("  size_t alloced = %zu\n", parser->alloced);
+  printf("  size_t count = %zu\n", parser->count);
+  printf("  int status = %d\n", parser->status);
+  printf("  ASTNode *root = {\n");
+  node_print(parser->root, 4, 1);
+  printf("  }\n");
+  printf("}\n");
 }
