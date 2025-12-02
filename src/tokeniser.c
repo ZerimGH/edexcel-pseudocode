@@ -1,6 +1,7 @@
 #include "tokeniser.h"
 #include "def.h"
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -92,13 +93,50 @@ static void tokeniser_append(Tokeniser *tokeniser, Token *token) {
   tokeniser->tokens[tokeniser->count++] = token;
 }
 
-// Read the next token from a tokeniser
-Token *tokeniser_next(Tokeniser *tokeniser) {
-  if(!tokeniser) return NULL;
-  if(tokeniser->read >= tokeniser->count) return NULL;
-  if(tokeniser->status != 0) return NULL;
+// Get the top token
+Token *tokeniser_top(Tokeniser *tokeniser) {
+  if(!tokeniser || tokeniser->status != 0) {
+    PERROR("Invalid tokeniser.\n");
+    return NULL;
+  }
 
-  return tokeniser->tokens[tokeniser->read++];
+  if(tokeniser->read >= tokeniser->count) return NULL;
+  Token *token = tokeniser->tokens[tokeniser->read];
+  return token;
+}
+
+// Expect and consume one of any number of possible token types
+Token *tokeniser_expect(Tokeniser *tokeniser, size_t num, ...) {
+  if(!tokeniser || tokeniser->status != 0) {
+    PERROR("Invalid tokeniser.\n");
+    return NULL;
+  }
+
+  if(tokeniser->read >= tokeniser->count) return NULL;
+  Token *token = tokeniser->tokens[tokeniser->read];
+  if(!token) return NULL;
+
+  va_list args;
+  va_start(args, num);
+
+  for(size_t i = 0; i < num; i++) {
+    TokenType expected_type = va_arg(args, TokenType);
+    if(token->type == expected_type) {
+      va_end(args);
+      tokeniser->read++;
+      return token;
+    }
+  }
+
+  va_end(args);
+  return NULL;
+}
+
+// Return if every token has been read
+int tokeniser_done(Tokeniser *tokeniser) {
+  if(!tokeniser) return 1;
+  if(tokeniser->status != 0) return 1;
+  return tokeniser->read == tokeniser->count;
 }
 
 // Try to create a token of a keyword from a string
@@ -258,7 +296,7 @@ err:
 // Helper function to convert token type to string
 static const char *token_type_to_str(TokenType t) {
   static const char *token_type_strings[] = {"TokenInteger", "TokenReal", "TokenBoolean", "TokenCharacter", "TokenSet", "TokenTo", "TokenIdentifier", "TokenIntLit"};
-  if(t > 0 && t < sizeof(token_type_strings) / sizeof(token_type_strings[0]))
+  if(t >= 0 && t < sizeof(token_type_strings) / sizeof(token_type_strings[0]))
     return token_type_strings[t];
   else
     return "UNKNOWN";

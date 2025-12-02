@@ -1,4 +1,5 @@
 #include "def.h"
+#include "parser.h"
 #include "tokeniser.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,7 +100,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  // Parse the tokens
+  Parser *parser = parse(tokeniser);
   tokeniser_destroy(&tokeniser);
+  if(!parser) {
+    PERROR("Failed to parse tokens.\n");
+    return 1;
+  }
+
+  parser_destroy(&parser);
 
   return 0;
 }

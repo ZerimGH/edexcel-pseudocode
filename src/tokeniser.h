@@ -22,6 +22,8 @@ typedef struct {
 Tokeniser *tokenise(char *src);
 void tokeniser_destroy(Tokeniser **tokeniser);
 void tokeniser_dump(Tokeniser *tokeniser);
-Token *tokeniser_next(Tokeniser *tokeniser);
+int tokeniser_done(Tokeniser *tokeniser);
+Token *tokeniser_top(Tokeniser *tokeniser);
+Token *tokeniser_expect(Tokeniser *tokeniser, size_t num, ...);
 
 #endif
