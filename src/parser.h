@@ -8,6 +8,10 @@ typedef enum { NodeProgram, NodeVarDecl, NodeVarAssign, NodeExpr } NodeType;
 
 typedef enum { VarInteger, VarReal, VarBoolean, VarCharacter } VarType;
 
+typedef enum { ExprInt, ExprVar, ExprOp } ExprType;
+
+typedef enum { OpAdd, OpSubtract, OpDivide, OpMultiply, OpExponent, OpModulo, OpIntDiv } Op;
+
 typedef struct ASTNode {
   NodeType type;
   union {
@@ -31,8 +35,17 @@ typedef struct ASTNode {
 
     // Expressions
     struct {
-      // TODO: real expressions
-      int integer_val;
+      ExprType type;
+
+      union {
+        int int_val;
+        char *var_name;
+        struct {
+          Op op;
+          struct ASTNode *left;
+          struct ASTNode *right;
+        } op;
+      };
     } expr;
   };
 } ASTNode;

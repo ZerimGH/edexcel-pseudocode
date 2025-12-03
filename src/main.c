@@ -51,7 +51,7 @@ void strip_comments(char *src) {
 
   while(*read != '\0') {
     if(*read == '#') in_comment = 1;
-    if(*read == '\n') in_comment = 0; 
+    if(*read == '\n') in_comment = 0;
     if(!in_comment) *(write++) = (*read);
     read++;
   }
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   int tok_debug = 0;
   int tok_only = 0;
   int parse_debug = 0;
-  int parse_only= 0;
+  int parse_only = 0;
   for(int i = 1; i < argc - 1; i++) {
     if(strcmp(argv[i], "--help") == 0) help = 1;
     if(strcmp(argv[i], "--tokeniser_debug") == 0) tok_debug = 1;

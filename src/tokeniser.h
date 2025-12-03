@@ -6,32 +6,32 @@
 
 typedef enum {
   // Datatype keywords
-  TokenInteger, // INTEGER
-  TokenReal, // REAL
-  TokenBoolean, // BOOLEAN
+  TokenInteger,   // INTEGER
+  TokenReal,      // REAL
+  TokenBoolean,   // BOOLEAN
   TokenCharacter, // CHARACTER
   // Action ? keywods
   TokenSet, // SET
-  TokenTo, // TO
+  TokenTo,  // TO
   // Operators
   // Arithmetic
-  TokenAdd, // +
+  TokenAdd,      // +
   TokenSubtract, // -
-  TokenDivide, // /
+  TokenDivide,   // /
   TokenMultiply, // *
   TokenExponent, // ^
-  TokenModulo, // MOD
-  TokenIntDiv, // DIV
+  TokenModulo,   // MOD
+  TokenIntDiv,   // DIV
   // Relational
-  TokenEqualTo, // =
-  TokenNEqualTo, // <> lmao wtf is this
-  TokenGreaterThan, // >
+  TokenEqualTo,       // =
+  TokenNEqualTo,      // <> lmao wtf is this
+  TokenGreaterThan,   // >
   TokenGreaterThanEq, // >=
-  TokenLessThan, // <
-  TokenLessThanEq, // <=
+  TokenLessThan,      // <
+  TokenLessThanEq,    // <=
   // Other things
   TokenIdentifier, // MyValue, myValue, My_Value, Counter2
-  TokenIntLit // 1, -1, 1234 
+  TokenIntLit      // 1, -1, 1234
 } TokenType;
 
 typedef struct {

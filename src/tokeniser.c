@@ -147,25 +147,9 @@ static Token *tokenise_keyword(char *src) {
     TokenType type;
     char *value;
   } keywords[] = {
-      {TokenInteger, "INTEGER"},
-      {TokenReal, "REAL"},
-      {TokenBoolean, "BOOLEAN"},
-      {TokenCharacter, "CHARACTER"},
-      {TokenSet, "SET"},
-      {TokenTo, "TO"},
-      {TokenAdd, "+"},
-      {TokenSubtract, "-"},
-      {TokenDivide, "/"},
-      {TokenMultiply, "*"},
-      {TokenExponent, "^"},
-      {TokenModulo, "MOD"},
-      {TokenIntDiv, "DIV"},
-      {TokenEqualTo, "="},
-      {TokenNEqualTo, "<>"},
-      {TokenGreaterThan, ">"},
-      {TokenGreaterThanEq, ">="},
-      {TokenLessThan, "<"},
-      {TokenLessThanEq, "<="},
+      {TokenInteger, "INTEGER"}, {TokenReal, "REAL"},     {TokenBoolean, "BOOLEAN"},  {TokenCharacter, "CHARACTER"}, {TokenSet, "SET"},       {TokenTo, "TO"},      {TokenAdd, "+"},
+      {TokenSubtract, "-"},      {TokenDivide, "/"},      {TokenMultiply, "*"},       {TokenExponent, "^"},          {TokenModulo, "MOD"},    {TokenIntDiv, "DIV"}, {TokenEqualTo, "="},
+      {TokenNEqualTo, "<>"},     {TokenGreaterThan, ">"}, {TokenGreaterThanEq, ">="}, {TokenLessThan, "<"},          {TokenLessThanEq, "<="},
   };
 
   size_t num_keywords = sizeof(keywords) / sizeof(keywords[0]);
@@ -313,7 +297,9 @@ err:
 
 // Helper function to convert token type to string
 static const char *token_type_to_str(TokenType t) {
-  static const char *token_type_strings[] = {"TokenInteger", "TokenReal", "TokenBoolean", "TokenCharacter", "TokenSet", "TokenTo", "TokenAdd", "TokenSubtract", "TokenDivide", "TokenMultiply", "TokenExponent", "TokenModulo", "TokenIntDiv", "TokenEqualTo", "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan", "TokenLessThanEq", "TokenIdentifier", "TokenIntLit"};
+  static const char *token_type_strings[] = {"TokenInteger",  "TokenReal",        "TokenBoolean",       "TokenCharacter", "TokenSet",        "TokenTo",         "TokenAdd",
+                                             "TokenSubtract", "TokenDivide",      "TokenMultiply",      "TokenExponent",  "TokenModulo",     "TokenIntDiv",     "TokenEqualTo",
+                                             "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan",  "TokenLessThanEq", "TokenIdentifier", "TokenIntLit"};
   if(t >= 0 && t < sizeof(token_type_strings) / sizeof(token_type_strings[0]))
     return token_type_strings[t];
   else
