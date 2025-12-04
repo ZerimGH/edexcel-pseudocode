@@ -1,0 +1,221 @@
+Appendix 1: Pseudo-code command set
+Questions in the written examination that involve code will use this pseudo-code for clarity and
+consistency. However, students may answer questions using any valid method.
+
+Data types
+  INTEGER
+  REAL
+  BOOLEAN
+  CHARACTER
+
+Type coercion
+  Type coercion is automatic if indicated by context. For example 3 + 8.25 = 11.25
+  (integer + real = real)
+  Mixed mode arithmetic is coerced like this:
+          INTEGER   REAL
+  INTEGER INTEGER   REAL
+  REAL    REAL      REAL
+
+  Coercion can be made explicit. For example, RECEIVE age FROM (INTEGER) KEYBOARD assumes
+  that the input from the keyboard is interpreted as an INTEGER, not a STRING.
+
+Constants
+  The value of constants can only ever be set once. They are identified by the keyword CONST .
+  Two examples of using a constant are shown.
+  CONST REAL PI
+  SET PI TO 3.14159
+  SET circumference TO radius * PI * 2
+
+Data structures
+  ARRAY
+  STRING
+  Indices start at zero (0) for all data structures.
+  All data structures have an append operator, indicated by &.
+  Using & with a STRING and a non-STRING will coerce to STRING. For example, SEND `Fred’ & age
+  TO DISPLAY, will display a single STRING of `Fred18’.
+
+Identifiers
+  Identifiers are sequences of letters, digits and ‘_’, starting with a letter, for example: MyValue,
+  myValue, My_Value, Counter2
+
+Functions
+  LENGTH()
+  For data structures consisting of an array or string.
+  RANDOM(n)
+  This generates a random number from 0 to n.
+
+Comments
+  Comments are indicated by the # symbol, followed by any text.
+  A comment can be on a line by itself or at the end of a line.
+
+Devices
+  Use of KEYBOARD and DISPLAY are suitable for input and output.
+  Additional devices may be required, but their function will be obvious from the context. For
+  example, CARD_READER and MOTOR are two such devices.
+
+Notes
+  In the following pseudo-code, the < > indicates where expressions or values need to be supplied.
+  The < > symbols are not part of the pseudo-code.
+
+Variables and arrays
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  SET Variable TO <value>       Assigns a value to a variable.        SET Counter TO 0
+  -------------------------------------------------------------------------------------------------------------
+  SET Variable TO <expression>  Computes the value of an expression   SET Sum TO Score + 10 
+                                and assigns to a variable.
+  -------------------------------------------------------------------------------------------------------------
+  SET Array[index] TO <value>   Assigns a value to an element of a    SET ArrayClass[1] TO ‘Ann’
+                                one-dimensional array.                SET ArrayMarks[3] TO 56
+  -------------------------------------------------------------------------------------------------------------
+  SET Array TO [<value>, …]     Initialises a one-dimensional array   SET ArrayValues TO [1, 2, 3, 4, 5] 
+                                with a set of values.
+  -------------------------------------------------------------------------------------------------------------
+  SET Array \                   Assigns a value to an element of a    SET ArrayClassMarks[2,4] TO 92
+  [RowIndex, ColumnIndex] \     two-dimensional array. 
+  TO <value> 
+  -------------------------------------------------------------------------------------------------------------
+
+Selection
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  IF <expression> THEN          If <expression> is true then          IF Answer = 10 THEN 
+    <command>                   command is executed.                    SET Score TO Score + 1 
+  END IF                                                              END IF
+  -------------------------------------------------------------------------------------------------------------
+  IF <expression> THEN          If <expression> is true then first    IF Answer = ‘correct’ THEN
+    <command>                   <command> is executed, otherwise        SEND ‘Well done’ TO DISPLAY 
+  ELSE                          second <command> is executed.         ELSE
+    <command>                                                           SEND ‘Try again’ TO DISPLAY
+  END IF                                                              END IF
+  -------------------------------------------------------------------------------------------------------------
+
+Repetition
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  WHILE <condition> DO          Pre-conditioned loop. Executes        WHILE Flag = 0 DO
+    <command>                   <command> whilst <condition> is         SEND ‘All well’ TO DISPLAY 
+  END WHILE                     true.                                 END WHILE
+  -------------------------------------------------------------------------------------------------------------
+  REPEAT                        Post-conditioned loop. Executes       REPEAT
+    <command>                   <command> until <condition> is true.    SET Go TO Go + 1 
+  UNTIL <expression>            The loop must execute at least once.  UNTIL Go = 10
+  -------------------------------------------------------------------------------------------------------------
+  REPEAT <expression> TIMES     Count controlled loop. The number of  REPEAT 100-Number TIMES  
+    <command>                   times <command> is executed is          SEND ‘*’ TO DISPLAY 
+  END REPEAT                    determined by the expression.         END REPEAT
+  -------------------------------------------------------------------------------------------------------------
+  FOR <id> FROM <expression> TO Count controlled loop. Executes       FOR Index FROM 1 TO 10 DO 
+  <expression> DO               <command> a fixed number of times.      SEND ArrayNumbers[Index] TO DISPLAY
+    <command>                                                         END FOR
+  END FOR
+  -------------------------------------------------------------------------------------------------------------
+  FOR <id> FROM <expression> TO Count controlled loop using a         FOR Index FROM 1 TO 500 STEP 25 DO 
+  <expression>                  step.                                   SEND Index TO DISPLAY 
+  STEP <expression>                                                   END FOR
+  DO
+    <command>
+  END FOR
+  -------------------------------------------------------------------------------------------------------------
+  FOR EACH <id>                 Count controlled loop.                SET WordsArray TO
+  FROM <expression>             Executes for each element             [‘The’, ‘Sky’, ‘is’, ‘grey’]     
+  DO                            of an array.                          SET Sentence to ‘‘
+  <command>                                                           FOR EACH Word FROM WordsUArray DO
+  END FOREACH                                                         SET Sentence TO Sentence & Word & ‘ ‘
+                                                                      END FOREACH
+  -------------------------------------------------------------------------------------------------------------
+
+Input/output
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  SEND <expression> TO DISPLAY  Sends output to the screen.           SEND ‘Have a good day.’ TO DISPLAY
+  -------------------------------------------------------------------------------------------------------------
+  RECEIVE <identifier> FROM     Reads input of specified type.        RECEIVE Name FROM (STRING) KEYBOARD
+  (type) <device>                                                     RECEIVE LengthOfJourney FROM (INTEGER)
+                                                                      CARD_READER
+                                                                      RECEIVE YesNo FROM (CHARACTER) 
+                                                                      CARD_READER
+  -------------------------------------------------------------------------------------------------------------
+
+File handling
+  NOTE: This syntax is very unclear, and I cant find any examples of it used in
+  real exam questions. For now, I will not implement it. It seems to be based
+  on COBOL syntax, so I'll learn that at some point to try to make sense of it.
+
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  READ <File> <record>          Reads in a record from a <file>       READ MyFile.doc Record 
+                                and assigns to a <variable>.
+                                Each READ statement reads a record 
+                                from the file.
+  WRITE <File> <record>         Writes a record to a file.            WRITE MyFile.doc Answer1, Answer2,
+                                Each WRITE statement writes a         ‘xyz 01’ 
+                                record to the file.
+  -------------------------------------------------------------------------------------------------------------
+
+Subprograms
+  Syntax                        Explanation of syntax                 Example
+  -------------------------------------------------------------------------------------------------------------
+  PROCEDURE <id>                Defines a procedure.                  PROCEDURE CalculateAverage (Mark1, Mark2, 
+  (<parameter>, …)                                                    Mark3)
+  BEGIN PROCEDURE                                                     BEGIN PROCEDURE
+    <command>                                                           SET Avg to (Mark1 + Mark2 + Mark3)/3
+  END PROCEDURE                                                       END PROCEDURE
+  -------------------------------------------------------------------------------------------------------------
+  FUNCTION <id>                 Defines a function.                   FUNCTION AddMarks (Mark1, Mark2, Mark3) 
+  (<parameter>, …)                                                    BEGIN FUNCTION
+  BEGIN FUNCTION                                                      SET Total to (Mark1 + Mark2 + Mark3)/3
+    <command>                                                         RETURN Total
+  RETURN <expression>                                                 END FUNCTION
+  END FUNCTION
+  -------------------------------------------------------------------------------------------------------------
+  <id> (<parameter>, …)         Calls a procedure or a function.      Add (FirstMark, SecondMark)
+  -------------------------------------------------------------------------------------------------------------
+
+Arithmetic operators
+  Symbol                Description
+  --------------------------------------------------------
+  +                     Add
+  --------------------------------------------------------
+  -                     Subtract
+  --------------------------------------------------------
+  /                     Divide
+  --------------------------------------------------------
+  *                     Multiply
+  --------------------------------------------------------
+  ^                     Exponent
+  --------------------------------------------------------
+  MOD                   Modulo
+  --------------------------------------------------------
+  DIV                   Integer division
+  --------------------------------------------------------
+
+Relational operators
+  Symbol                Description
+  --------------------------------------------------------
+  =                     equal to
+  --------------------------------------------------------
+  <>                    not equal to
+  --------------------------------------------------------
+  >                     greater than
+  --------------------------------------------------------
+  >=                    greater than or equal to
+  --------------------------------------------------------
+  <                     less than
+  --------------------------------------------------------
+  <=                    less than or equal to
+  --------------------------------------------------------
+
+Logical operators
+  Symbol                Description
+  --------------------------------------------------------
+  AND                   Returns true if both conditions
+                        are true.
+  --------------------------------------------------------
+  OR                    Returns true if any of the
+                        conditions are true.
+  --------------------------------------------------------
+  NOT                   Reverses the outcome of the
+                        expression; true becomes
+                        false, false becomes true.
+  --------------------------------------------------------
