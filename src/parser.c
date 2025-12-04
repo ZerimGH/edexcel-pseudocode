@@ -5,6 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define PERROR_LOC \
+{\
+Token *top = tokeniser_top(tokeniser);\
+if(!top) \
+  PERROR("Error occured at line ?, char ?\n");\
+else {\
+  PERROR("Error occured at line %zu, char %zu\n", top->line_no, top->char_no);\
+}\
+}
+
 // Convert a token type to a variable type
 static VarType token_type_to_var_type(TokenType token_type) {
   switch(token_type) {
@@ -60,19 +70,19 @@ static void node_destroy(ASTNode **node) {
     break;
   case NodeExpr:
     switch(n->expr.type) {
-      case ExprOp:
-        node_destroy(&n->expr.op.left);
-        node_destroy(&n->expr.op.right);
-        break;
-      case ExprVar:
-        if(n->expr.var_name) free(n->expr.var_name);
-        break;
-      case ExprInt:
-        // Nothing to free
-        break;
-      default:
-        PERROR("UNIMPLEMENTED EXPRESSION DESTRUCTION!!!!!\n");
-        break;
+    case ExprOp:
+      node_destroy(&n->expr.op.left);
+      node_destroy(&n->expr.op.right);
+      break;
+    case ExprVar:
+      if(n->expr.var_name) free(n->expr.var_name);
+      break;
+    case ExprInt:
+      // Nothing to free
+      break;
+    default:
+      PERROR("UNIMPLEMENTED EXPRESSION DESTRUCTION!!!!!\n");
+      break;
     }
     break;
   default:
@@ -167,6 +177,7 @@ static ASTNode *parse_var_decl(Tokeniser *tokeniser) {
   Token *type_tok = tokeniser_expect(tokeniser, 4, TokenInteger, TokenReal, TokenBoolean, TokenCharacter);
   if(!type_tok) {
     PERROR("Expected variable type\n");
+    PERROR_LOC
     return NULL;
   }
 
@@ -174,6 +185,7 @@ static ASTNode *parse_var_decl(Tokeniser *tokeniser) {
   Token *ident_tok = tokeniser_expect(tokeniser, 1, TokenIdentifier);
   if(!ident_tok) {
     PERROR("Expected identifier.\n");
+    PERROR_LOC
     return NULL;
   }
 
@@ -334,11 +346,11 @@ static Token *token_queue_pop(TokenQueue *queue) {
 }
 
 static Token *token_queue_pop_front(TokenQueue *queue) {
-    if (!queue || !queue->count) return NULL;
-    Token *tok = queue->toks[0];
-    memmove(queue->toks, queue->toks + 1, sizeof(Token*) * (queue->count - 1));
-    queue->count--;
-    return tok;
+  if(!queue || !queue->count) return NULL;
+  Token *tok = queue->toks[0];
+  memmove(queue->toks, queue->toks + 1, sizeof(Token *) * (queue->count - 1));
+  queue->count--;
+  return tok;
 }
 
 static ASTNode *make_int_lit(char *val) {
@@ -371,14 +383,14 @@ static ASTNode *make_var(char *val) {
 ASTNode *create_value_node(Token *tok) {
   if(!tok) return NULL;
   if(!is_value_tok(tok)) return NULL;
-  switch (tok->type) {
-    case TokenIntLit:
-      return make_int_lit(tok->value);
-    case TokenIdentifier:
-      return make_var(tok->value);
-    default:
-      PERROR("Unknown type %d.\n", tok->type);
-      return NULL;
+  switch(tok->type) {
+  case TokenIntLit:
+    return make_int_lit(tok->value);
+  case TokenIdentifier:
+    return make_var(tok->value);
+  default:
+    PERROR("Unknown type %d.\n", tok->type);
+    return NULL;
   }
 }
 
@@ -405,6 +417,8 @@ ASTNode *create_expr_node(ASTNode *a, ASTNode *b, Token *op_tok) {
 }
 
 // Parse an expression
+// TODO: Make this function memory safe.
+// RIght now, it doesnt free all memory on failure (value queue)
 static ASTNode *parse_expr(Tokeniser *tokeniser) {
   if(!tokeniser) return NULL;
   Token *tok = NULL;
@@ -455,6 +469,7 @@ static ASTNode *parse_expr(Tokeniser *tokeniser) {
     // TODO: parenthesis
     else {
       PERROR("huh\n");
+      PERROR_LOC
       continue;
     }
   }
@@ -483,7 +498,7 @@ static ASTNode *parse_expr(Tokeniser *tokeniser) {
   //     pop value_a from value stack
   //     create an expression node of (value_a op value_b)
   //     push to value stack
-  // final expression node = pop from value stack 
+  // final expression node = pop from value stack
 
   // IDC fixed size queue
   ASTNode *value_queue[256] = {0};
@@ -497,7 +512,8 @@ static ASTNode *parse_expr(Tokeniser *tokeniser) {
       // create an expression node with that value
       ASTNode *value_node = create_value_node(popped);
       // push to value stack
-      if(count < 256) value_queue[count++] = value_node;
+      if(count < 256)
+        value_queue[count++] = value_node;
       else {
         PERROR("Stack overflow!!\n");
         node_destroy(&value_node);
@@ -512,12 +528,14 @@ static ASTNode *parse_expr(Tokeniser *tokeniser) {
         if(value_b) node_destroy(&value_b);
         if(value_a) node_destroy(&value_a);
         PERROR("Failed to get value from value queue.\n");
+        PERROR_LOC
         goto err;
       }
       // create an expression node of (value_a op value_b)
       ASTNode *expr_node = create_expr_node(value_a, value_b, popped);
       // push to value stack
-      if(count < 256) value_queue[count++] = expr_node; 
+      if(count < 256)
+        value_queue[count++] = expr_node;
       else {
         node_destroy(&expr_node);
         PERROR("Stack overflow!!\n");
@@ -532,10 +550,11 @@ static ASTNode *parse_expr(Tokeniser *tokeniser) {
 
   token_queue_destroy(&output_queue);
 
-  // final expression node = pop from value stack 
+  // final expression node = pop from value stack
 
   if(count != 1) {
-    PERROR("something messed up idk.\n");
+    PERROR("Too many values left in value queue.\n");
+    PERROR_LOC
     for(size_t i = 0; i < count; i++) {
       node_destroy(&value_queue[i]);
     }
@@ -605,6 +624,7 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
   NodeType type = detect_type(tokeniser);
   if(type == -1) {
     PERROR("Failed to detect statement type.\n");
+    PERROR_LOC
     return NULL;
   }
 
@@ -689,14 +709,22 @@ static const char *var_type_to_str(VarType type) {
 
 static const char *expr_op_to_str(Op op) {
   switch(op) {
-    case OpAdd: return "OpAdd";
-    case OpSubtract: return "OpSubtract";
-    case OpDivide: return "OpDivide";
-    case OpMultiply: return "OpMultiply";
-    case OpExponent: return "OpExponent";
-    case OpModulo: return "OpModulo";
-    case OpIntDiv:  return "OpIntDiv";
-    default: return "?";
+  case OpAdd:
+    return "OpAdd";
+  case OpSubtract:
+    return "OpSubtract";
+  case OpDivide:
+    return "OpDivide";
+  case OpMultiply:
+    return "OpMultiply";
+  case OpExponent:
+    return "OpExponent";
+  case OpModulo:
+    return "OpModulo";
+  case OpIntDiv:
+    return "OpIntDiv";
+  default:
+    return "?";
   }
 }
 
@@ -740,34 +768,34 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
     print_indent(indent);
     printf("  NodeType type = NodeExpr\n");
     switch(node->expr.type) {
-      case ExprOp:
-        print_indent(indent);
-        printf("  expr.type = ExprOp\n");
-        print_indent(indent);
-        printf("  expr.op.op = %s\n", expr_op_to_str(node->expr.op.op));
-        print_indent(indent);
-        printf("  expr.op.left = ");
-        node_print(node->expr.op.left, indent + 2, 0);
-        print_indent(indent);
-        printf("  expr.op.right = ");
-        node_print(node->expr.op.right, indent + 2, 0);
-        break;
-      case ExprInt:
-        print_indent(indent);
-        printf("  expr.type = ExprInt\n");
-        print_indent(indent);
-        printf("  expr.int_val = %d\n", node->expr.int_val);
-        break;
-      case ExprVar:
-        print_indent(indent);
-        printf("  expr.type = ExprVar\n");
-        print_indent(indent);
-        printf("  expr.var_name = %s\n", node->expr.var_name);
-        break;
-      default: 
-        print_indent(indent);
-        printf("?\n");
-        break;
+    case ExprOp:
+      print_indent(indent);
+      printf("  expr.type = ExprOp\n");
+      print_indent(indent);
+      printf("  expr.op.op = %s\n", expr_op_to_str(node->expr.op.op));
+      print_indent(indent);
+      printf("  expr.op.left = ");
+      node_print(node->expr.op.left, indent + 2, 0);
+      print_indent(indent);
+      printf("  expr.op.right = ");
+      node_print(node->expr.op.right, indent + 2, 0);
+      break;
+    case ExprInt:
+      print_indent(indent);
+      printf("  expr.type = ExprInt\n");
+      print_indent(indent);
+      printf("  expr.int_val = %d\n", node->expr.int_val);
+      break;
+    case ExprVar:
+      print_indent(indent);
+      printf("  expr.type = ExprVar\n");
+      print_indent(indent);
+      printf("  expr.var_name = %s\n", node->expr.var_name);
+      break;
+    default:
+      print_indent(indent);
+      printf("?\n");
+      break;
     }
     break;
   default:

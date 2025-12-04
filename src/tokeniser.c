@@ -147,9 +147,49 @@ static Token *tokenise_keyword(char *src) {
     TokenType type;
     char *value;
   } keywords[] = {
-      {TokenInteger, "INTEGER"}, {TokenReal, "REAL"},     {TokenBoolean, "BOOLEAN"},  {TokenCharacter, "CHARACTER"}, {TokenSet, "SET"},       {TokenTo, "TO"},      {TokenAdd, "+"},
-      {TokenSubtract, "-"},      {TokenDivide, "/"},      {TokenMultiply, "*"},       {TokenExponent, "^"},          {TokenModulo, "MOD"},    {TokenIntDiv, "DIV"}, {TokenEqualTo, "="},
-      {TokenNEqualTo, "<>"},     {TokenGreaterThan, ">"}, {TokenGreaterThanEq, ">="}, {TokenLessThan, "<"},          {TokenLessThanEq, "<="},
+      {TokenInteger, "INTEGER"},
+      {TokenReal, "REAL"},
+      {TokenBoolean, "BOOLEAN"},
+      {TokenCharacter, "CHARACTER"},
+      {TokenArray, "ARRAY"},
+      {TokenString, "STRING"},
+      {TokenConst, "CONST"},
+      {TokenSet, "SET"},
+      {TokenTo, "TO"},
+      {TokenIf, "IF"},
+      {TokenThen, "THEN"},
+      {TokenElse, "ELSE"},
+      {TokenEnd, "END"},
+      {TokenWhile, "WHILE"},
+      {TokenDo, "DO"},
+      {TokenRepeat, "REPEAT"},
+      {TokenUntil, "UNTIL"},
+      {TokenTimes, "TIMES"},
+      {TokenReceive, "RECEIVE"},
+      {TokenSend, "SEND"},
+      {TokenFrom, "FROM"},
+      {TokenRead, "READ"},
+      {TokenWrite, "WRITE"},
+      {TokenProcedure, "PROCEDURE"},
+      {TokenFunction, "FUNCTION"},
+      {TokenReturn, "RETURN"},
+      {TokenAdd, "+"},
+      {TokenSubtract, "-"},
+      {TokenDivide, "/"},
+      {TokenMultiply, "*"},
+      {TokenExponent, "^"},
+      {TokenModulo, "MOD"},
+      {TokenIntDiv, "DIV"},
+      {TokenEqualTo, "="},
+      {TokenNEqualTo, "<>"},
+      {TokenGreaterThan, ">"},
+      {TokenGreaterThanEq, ">="},
+      {TokenLessThan, "<"},
+      {TokenLessThanEq, "<="},
+      {TokenAnd, "AND"},
+      {TokenOr, "OR"},
+      {TokenNot, "NOT"},
+      {TokenAppend, "&"},
   };
 
   size_t num_keywords = sizeof(keywords) / sizeof(keywords[0]);
@@ -177,6 +217,8 @@ static int is_ident_char(char c) {
 
 // Try to create a token of an identifier from a string
 static Token *tokenise_ident(char *src) {
+  // Identifiers are sequences of letters, digits and ‘_’, 
+  // starting with a letter, for example: MyValue, myValue, My_Value, Counter2
   if(!src || *src == '\0' || isspace((unsigned char)*src)) return NULL;
   if(!isalpha((unsigned char)*src))
     return NULL; // An identifier must start with an
@@ -231,6 +273,101 @@ static Token *tokenise_int_lit(char *src) {
   return tok;
 }
 
+// Try to create a token of a realliteral from a string
+static Token *tokenise_real_lit(char *src) {
+  if(!src || *src == '\0' || isspace((unsigned char)*src)) return NULL;
+  if(!(is_digit(*src) || *src == '-'))
+    return NULL; // A real literal must start with a
+                 // digit or a negative sign
+  int negative = *src == '-';
+  size_t lit_len = 1;
+  size_t dot = 0;
+  // Consume characters while digits
+  while(is_digit(src[lit_len]) || (src[lit_len] == '.' && dot == 0)) {
+    if(src[lit_len] == '.') dot = lit_len;
+    lit_len++;
+  }
+
+  // If no dot, its not a valid real lit
+  if(dot == 0) return NULL;
+  
+  // Handle something like -.0
+  if(negative && dot == 1) return NULL;
+
+  // Handle something like 0.
+  if(dot == lit_len - 1) return NULL;
+
+  // If only a negative sign without digits, return NULL
+  if(negative && lit_len == 1) return NULL;
+
+  // Check that the next character is a space, newline, or end of string
+  if(!isspace((unsigned char)src[lit_len]) && src[lit_len] != '\0') return NULL;
+
+  // Return a token with the real value
+  char before = src[lit_len];
+  src[lit_len] = '\0';
+  Token *tok = token_create(TokenRealLit, src);
+  src[lit_len] = before;
+  if(!tok) {
+    PERROR("Failed to allocate a token.\n");
+    return NULL;
+  }
+  return tok;
+}
+
+static Token *tokenise_char_lit(char *src) {
+  if(!src || *src == '\0' || isspace((unsigned char)*src)) return NULL;
+  if(*src != '\'') return NULL;
+  char c = *(src + 1);
+  size_t lit_len = 0;
+  if(!c) return NULL;
+  if(c == '\\') {
+    char next = *(src + 2);
+    if(!next) return NULL;
+    char close = *(src + 3);
+    if(close != '\'') return NULL;
+    lit_len = 4;
+  } else {
+    if(c == '\n') return NULL;
+    if(*(src + 2) != '\'') return NULL;
+    lit_len = 3;
+  }
+
+  char before = src[lit_len];
+  src[lit_len] = '\0';
+  Token *tok = token_create(TokenCharacterLit, src);
+  src[lit_len] = before;
+  if(!tok) {
+    PERROR("Failed to allocate a token.\n");
+    return NULL;
+  }
+  return tok;
+}
+
+static Token *tokenise_str_lit(char *src) {
+  if(!src || *src == '\0' || isspace((unsigned char)*src)) return NULL;
+  if(*src != '\"') return NULL;
+  size_t lit_len = 1;
+  int closed = 0;
+  while(*(src + lit_len) && !closed) {
+    if(*(src + lit_len) == '\"') closed = 1;
+    if(*(src + lit_len) == '\n') break;
+    lit_len++;
+  }
+
+  if(!closed) return NULL;
+
+  char before = src[lit_len];
+  src[lit_len] = '\0';
+  Token *tok = token_create(TokenStringLit, src);
+  src[lit_len] = before;
+  if(!tok) {
+    PERROR("Failed to allocate a token.\n");
+    return NULL;
+  }
+  return tok;
+}
+
 // Tokenise a string
 Tokeniser *tokenise(char *src) {
   if(!src) {
@@ -244,19 +381,31 @@ Tokeniser *tokenise(char *src) {
     return NULL;
   }
 
+  size_t line_no = 1;
+  size_t char_no = 1;
   char *read = src;
 
   while(*read) {
     // Skip whitespace
-    while(*read && isspace((unsigned char)*read)) read++;
+    while(*read && isspace((unsigned char)*read)) {
+      if(*read == '\n') {
+        char_no = 1;
+        line_no++;
+      }
+      else char_no += 1;
+      read++;
+    }
     if(!*read) break;
 
     // Try every possible token type, and select the longest one
     Token *tok = NULL;
-    Token *candidates[3];
+    Token *candidates[6];
     candidates[0] = tokenise_keyword(read);
     candidates[1] = tokenise_ident(read);
     candidates[2] = tokenise_int_lit(read);
+    candidates[3] = tokenise_real_lit(read);
+    candidates[4] = tokenise_char_lit(read);
+    candidates[5] = tokenise_str_lit(read);
 
     size_t max_len = 0;
     for(size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); i++) {
@@ -274,12 +423,17 @@ Tokeniser *tokenise(char *src) {
     }
 
     if(tok) {
+      // Write line and character number
+      tok->line_no = line_no;
+      tok->char_no = char_no;
       // Add to tokens
       tokeniser_append(tokeniser, tok);
       // Skip to after the token
       read += strlen(tok->value);
+      char_no += strlen(tok->value);
     } else {
       // Invalid token
+      PERROR("Invalid token at line %zu, character %zu\n", line_no, char_no);
       goto err;
     }
   }
@@ -297,9 +451,12 @@ err:
 
 // Helper function to convert token type to string
 static const char *token_type_to_str(TokenType t) {
-  static const char *token_type_strings[] = {"TokenInteger",  "TokenReal",        "TokenBoolean",       "TokenCharacter", "TokenSet",        "TokenTo",         "TokenAdd",
-                                             "TokenSubtract", "TokenDivide",      "TokenMultiply",      "TokenExponent",  "TokenModulo",     "TokenIntDiv",     "TokenEqualTo",
-                                             "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan",  "TokenLessThanEq", "TokenIdentifier", "TokenIntLit"};
+  static const char *token_type_strings[] = {
+      "TokenInteger",  "TokenReal",   "TokenBoolean", "TokenCharacter",  "TokenArray",    "TokenString",      "TokenConst",         "TokenSet",          "TokenTo",         "TokenIf",
+      "TokenThen",     "TokenElse",   "TokenEnd",     "TokenWhile",      "TokenDo",       "TokenRepeat",      "TokenUntil",         "TokenTimes",        "TokenReceive",    "TokenSend",
+      "TokenFrom",     "TokenRead",   "TokenWrite",   "TokenProcedure",  "TokenFunction", "TokenReturn",      "TokenAdd",           "TokenSubtract",     "TokenDivide",     "TokenMultiply",
+      "TokenExponent", "TokenModulo", "TokenIntDiv",  "TokenEqualTo",    "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan",     "TokenLessThanEq", "TokenAnd",
+      "TokenOr",       "TokenNot",    "TokenAppend",  "TokenIdentifier", "TokenIntLit",   "TokenRealLit",     "TokenBooleanLit",    "TokenCharacterLit", "TokenStringLit"};
   if(t >= 0 && t < sizeof(token_type_strings) / sizeof(token_type_strings[0]))
     return token_type_strings[t];
   else
@@ -312,7 +469,7 @@ static void token_print(Token *token) {
     printf("(null)");
     return;
   }
-  printf("(Token) {.type = %s, .value = \"%s\"}", token_type_to_str(token->type), token->value);
+  printf("(Token) {type = %s, value = \"%s\", size_t line_no = %zu, size_t char_no = %zu}", token_type_to_str(token->type), token->value, token->line_no, token->char_no);
 }
 
 // Print the full state of a tokeniser

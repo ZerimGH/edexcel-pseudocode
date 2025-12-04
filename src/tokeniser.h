@@ -10,9 +10,30 @@ typedef enum {
   TokenReal,      // REAL
   TokenBoolean,   // BOOLEAN
   TokenCharacter, // CHARACTER
-  // Action ? keywods
-  TokenSet, // SET
-  TokenTo,  // TO
+  TokenArray,     // ARRAY
+  TokenString,    // STRING
+  // Attribute keywords
+  TokenConst, // CONST
+  // Action ? keywords
+  TokenSet,       // SET
+  TokenTo,        // TO
+  TokenIf,        // IF
+  TokenThen,      // THEN
+  TokenElse,      // ELSE
+  TokenEnd,       // END
+  TokenWhile,     // WHILE
+  TokenDo,        // DO
+  TokenRepeat,    // REPEAT
+  TokenUntil,     // UNTIL
+  TokenTimes,     // TIMES
+  TokenReceive,   // RECEIVE
+  TokenSend,      // SEND
+  TokenFrom,      // FROM
+  TokenRead,      // READ
+  TokenWrite,     // WRITE
+  TokenProcedure, // PROCEDURE
+  TokenFunction,  // FUNCTION
+  TokenReturn,    // RETURN
   // Operators
   // Arithmetic
   TokenAdd,      // +
@@ -29,14 +50,25 @@ typedef enum {
   TokenGreaterThanEq, // >=
   TokenLessThan,      // <
   TokenLessThanEq,    // <=
+  // Logical
+  TokenAnd, // AND
+  TokenOr,  // OR
+  TokenNot, // NOT
+  // Array
+  TokenAppend, // &
   // Other things
-  TokenIdentifier, // MyValue, myValue, My_Value, Counter2
-  TokenIntLit      // 1, -1, 1234
+  TokenIdentifier,   // MyValue, myValue, My_Value, Counter2
+  TokenIntLit,       // 1, -1, 1234
+  TokenRealLit,      // 1.0, 23.5, -0.007
+  TokenBooleanLit,   // TRUE, FALSE
+  TokenCharacterLit, // 'a', 'b', '0', '\n'
+  TokenStringLit,    // "hello!", "AKPDAOPS"
 } TokenType;
 
 typedef struct {
   TokenType type;
   char *value;
+  size_t line_no, char_no;
 } Token;
 
 typedef struct {
