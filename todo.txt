@@ -1,0 +1,37 @@
+DONE:
+  -command line argument parsing
+  -input file reading
+  -input file tokenisation
+  parse:
+    -<type> <id> variable declaration syntax
+    -SET <id> TO <value> syntax
+    -SET <id> TO <expression> syntax
+  
+
+DOING:
+  -
+
+TODO:
+  -AST interpretation
+  -compilation to C (im too lazy for assembly)
+  -figure out file handling syntax
+  parse:
+    -SET Array[Index] TO <value> syntax
+    -SET Array TO [<value>, ...] syntax
+    -SET Array[RowIndex, ColumnIndex] TO <value> syntax
+    -IF <expression> THEN <command> END IF syntax
+    -IF <expression> THEN <command> ELSE <command> END IF syntax
+    -WHILE <condition> DO <command> END WHILE syntax
+    -REPEAT <command> UNTIL <expression> syntax
+    -REPEAT <expression> TIMES <command> END REPEAT syntax
+    -FOR <id> FROM <expression> TO <expression> DO <command> END FOR syntax
+    -FOR <id> FROM <expression> TO <expression> STEP <expression> DO <command>
+       END FOR syntax
+    -FOR EACH <id> FROM <expression> DO <command> END FOREACH
+    -SEND <expression> TO <device> syntax
+    -PROCEDURE <id> (<parameter>, ...) BEGIN PROCEDURE <command> END PROCEDURE
+       syntax 
+    -FUNCTION <id> (<parameter>, ...) BEGIN PROCEDURE <command> RETURN
+       <expression> END PROCEDURE syntax 
+    -<id> (<paremeter>, ...) syntax
+       
