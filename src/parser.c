@@ -1,19 +1,20 @@
 #include "parser.h"
 #include "def.h"
 #include "tokeniser.h"
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define PERROR_LOC \
-{\
-Token *top = tokeniser_top(tokeniser);\
-if(!top) \
-  PERROR("Error occured at line ?, char ?\n");\
-else {\
-  PERROR("Error occured at line %zu, char %zu\n", top->line_no, top->char_no);\
-}\
-}
+#define PERROR_LOC                                                                 \
+  {                                                                                \
+    Token *top = tokeniser_top(tokeniser);                                         \
+    if(!top)                                                                       \
+      PERROR("Error occured at line ?, char ?\n");                                 \
+    else {                                                                         \
+      PERROR("Error occured at line %zu, char %zu\n", top->line_no, top->char_no); \
+    }                                                                              \
+  }
 
 // Convert a token type to a variable type
 static VarType token_type_to_var_type(TokenType token_type) {
@@ -83,6 +84,23 @@ static void node_destroy(ASTNode **node) {
     default:
       PERROR("UNIMPLEMENTED EXPRESSION DESTRUCTION!!!!!\n");
       break;
+    }
+    break;
+  case NodeIf:
+    node_destroy(&n->if_stmt.condition);
+    if(n->if_stmt.stmts) {
+      for(size_t i = 0; i < n->if_stmt.stmts_count; i++) {
+        node_destroy(&n->if_stmt.stmts[i]);
+      }
+      free(n->if_stmt.stmts);
+      n->if_stmt.stmts = NULL;
+    }
+    if(n->if_stmt.else_stmts) {
+      for(size_t i = 0; i < n->if_stmt.else_stmts_count; i++) {
+        node_destroy(&n->if_stmt.else_stmts[i]);
+      }
+      free(n->if_stmt.else_stmts);
+      n->if_stmt.else_stmts = NULL;
     }
     break;
   default:
@@ -166,6 +184,8 @@ static NodeType detect_type(Tokeniser *tokeniser) {
   if(is_var_type(token->type)) return NodeVarDecl;
   // If it starts with SET, its a variable asssignment
   if(token->type == TokenSet) return NodeVarAssign;
+  // If it starts with IF, its an if statement
+  if(token->type == TokenIf) return NodeIf;
 
   // Couldn't detect type
   return -1;
@@ -618,6 +638,154 @@ static ASTNode *parse_var_assign(Tokeniser *tokeniser) {
   return node;
 }
 
+static ASTNode *parse_statement(Tokeniser *tokeniser);
+
+ASTNode **parse_until(Tokeniser *tokeniser, size_t *count, size_t n, ...) {
+  if(!count || !tokeniser) return NULL;
+
+  *count = 0;
+  size_t allocated = 16;
+  ASTNode **out = malloc(sizeof(ASTNode *) * allocated);
+  if(!out) return NULL;
+
+  while(1) {
+    Token *tok = tokeniser_top(tokeniser);
+    if(!tok) {
+      PERROR("Unexpected end of token stream.\n");
+      goto err;
+    }
+
+    va_list args;
+    va_start(args, n);
+    int should_stop = 0;
+    for(size_t i = 0; i < n; i++) {
+      TokenType expected_type = va_arg(args, TokenType);
+      if(tok->type == expected_type) {
+        should_stop = 1;
+        break;
+      }
+    }
+    va_end(args);
+
+    if(should_stop)
+      break;
+
+    ASTNode *statement = parse_statement(tokeniser);
+    if(!statement) {
+      PERROR("Failed to parse a statement.\n");
+      PERROR_LOC
+      goto err;
+    }
+
+    if(*count >= allocated) {
+      allocated *= 2;
+      ASTNode **new = realloc(out, sizeof(ASTNode *) * allocated);
+      if(!new) {
+        PERROR("realloc() failed.\n");
+        node_destroy(&statement);
+        goto err;
+      }
+      out = new;
+    }
+
+    out[(*count)++] = statement;
+  }
+
+  if(*count == 0) {
+    PERROR("Empty block\n");
+    goto err;
+  }
+
+  return out;
+
+err:
+  for(size_t i = 0; i < *count; i++)
+    node_destroy(&out[i]);
+  free(out);
+  return NULL;
+}
+
+static ASTNode *parse_if(Tokeniser *tokeniser) {
+  if(!tokeniser) return NULL;
+
+  Token *if_tok = tokeniser_expect(tokeniser, 1, TokenIf);
+  if(!if_tok) {
+    PERROR("Expected IF\n");
+    PERROR_LOC
+    return NULL;
+  }
+
+  ASTNode *cond = NULL;
+  ASTNode **stmts = NULL;
+  size_t stmts_count = 0;
+  ASTNode **else_stmts = NULL;
+  size_t else_stmts_count = 0;
+
+  cond = parse_expr(tokeniser);
+  if(!cond) {
+    PERROR("Failed to parse condition.\n");
+    return NULL;
+  }
+
+  if(!tokeniser_expect(tokeniser, 1, TokenThen)) {
+    PERROR("Expected THEN\n");
+    PERROR_LOC
+    goto err;
+  }
+
+  stmts = parse_until(tokeniser, &stmts_count, 2, TokenEnd, TokenElse);
+  if(!stmts) {
+    PERROR("Failed to parse IF statements.\n");
+    goto err;
+  }
+
+  Token *top = tokeniser_top(tokeniser);
+  if(top->type == TokenElse) {
+    tokeniser_expect(tokeniser, 1, TokenElse);
+    else_stmts = parse_until(tokeniser, &else_stmts_count, 1, TokenEnd);
+    if(!else_stmts) {
+      PERROR("Failed to parse ELSE statements.\n");
+      goto err;
+    }
+  }
+
+  if(!tokeniser_expect(tokeniser, 1, TokenEnd) ||
+     !tokeniser_expect(tokeniser, 1, TokenIf)) {
+    PERROR("Expected END IF\n");
+    PERROR_LOC
+    goto err;
+  }
+
+  ASTNode *node = node_create(NodeIf);
+  if(!node) {
+    PERROR("Failed to create node.\n");
+    goto err;
+  }
+
+  node->if_stmt.condition = cond;
+  node->if_stmt.stmts = stmts;
+  node->if_stmt.stmts_count = stmts_count;
+  node->if_stmt.else_stmts = else_stmts;
+  node->if_stmt.else_stmts_count = else_stmts_count;
+
+  return node;
+
+err:
+  node_destroy(&cond);
+
+  if(stmts) {
+    for(size_t i = 0; i < stmts_count; i++)
+      node_destroy(&stmts[i]);
+  }
+
+  if(else_stmts) {
+    for(size_t i = 0; i < else_stmts_count; i++)
+      node_destroy(&else_stmts[i]);
+  }
+
+  return NULL;
+}
+
 // Parse a statement
 static ASTNode *parse_statement(Tokeniser *tokeniser) {
   // Detect the node type
@@ -633,6 +801,8 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
     return parse_var_decl(tokeniser);
   case NodeVarAssign:
     return parse_var_assign(tokeniser);
+  case NodeIf:
+    return parse_if(tokeniser);
   default:
     PERROR("Unimplemented node type %d\n", type);
     return NULL;
@@ -728,6 +898,10 @@ static const char *expr_op_to_str(Op op) {
   }
 }
 
+#define NODE_PRINTF(fmt, ...) \
+  print_indent(indent);       \
+  printf(fmt, ##__VA_ARGS__);
+
 static void node_print(ASTNode *node, size_t indent, int indent_head) {
   if(indent_head) {
     print_indent(indent);
@@ -735,68 +909,73 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
   printf("(ASTNode) {\n");
   switch(node->type) {
   case NodeProgram:
-    print_indent(indent);
-    printf("  NodeType type = NodeProgram\n");
-    print_indent(indent);
-    printf("  program.nodes = {\n");
+    NODE_PRINTF("  NodeType type = NodeProgram\n");
+    NODE_PRINTF("  program.nodes = {\n");
     for(size_t i = 0; i < node->program.count; i++) {
       node_print(node->program.nodes[i], indent + 4, 1);
     }
-    print_indent(indent);
-    printf("  }\n");
-    print_indent(indent);
-    printf("  program.count = %zu\n", node->program.count);
+    NODE_PRINTF("  }\n");
+    NODE_PRINTF("  program.count = %zu\n", node->program.count);
     break;
   case NodeVarDecl:
-    print_indent(indent);
-    printf("  NodeType type = NodeVarDecl\n");
-    print_indent(indent);
-    printf("  var_decl.type = %s\n", var_type_to_str(node->var_decl.type));
-    print_indent(indent);
-    printf("  var_decl.id = \"%s\"\n", node->var_decl.id);
+    NODE_PRINTF("  NodeType type = NodeVarDecl\n");
+    NODE_PRINTF("  var_decl.type = %s\n", var_type_to_str(node->var_decl.type));
+    NODE_PRINTF("  var_decl.id = \"%s\"\n", node->var_decl.id);
     break;
   case NodeVarAssign:
-    print_indent(indent);
-    printf("  NodeType type = NodeVarAssign\n");
-    print_indent(indent);
-    printf("  var_assign.id = \"%s\"\n", node->var_assign.id);
-    print_indent(indent);
-    printf("  var_assign.expr = ");
+    NODE_PRINTF("  NodeType type = NodeVarAssign\n");
+    NODE_PRINTF("  var_assign.id = \"%s\"\n", node->var_assign.id);
+    NODE_PRINTF("  var_assign.expr = ");
     node_print(node->var_assign.expr, indent + 2, 0);
     break;
   case NodeExpr:
-    print_indent(indent);
-    printf("  NodeType type = NodeExpr\n");
+    NODE_PRINTF("  NodeType type = NodeExpr\n");
     switch(node->expr.type) {
     case ExprOp:
-      print_indent(indent);
-      printf("  expr.type = ExprOp\n");
-      print_indent(indent);
-      printf("  expr.op.op = %s\n", expr_op_to_str(node->expr.op.op));
-      print_indent(indent);
-      printf("  expr.op.left = ");
+      NODE_PRINTF("  expr.type = ExprOp\n");
+      NODE_PRINTF("  expr.op.op = %s\n", expr_op_to_str(node->expr.op.op));
+      NODE_PRINTF("  expr.op.left = ");
       node_print(node->expr.op.left, indent + 2, 0);
-      print_indent(indent);
-      printf("  expr.op.right = ");
+      NODE_PRINTF("  expr.op.right = ");
       node_print(node->expr.op.right, indent + 2, 0);
       break;
     case ExprInt:
-      print_indent(indent);
-      printf("  expr.type = ExprInt\n");
-      print_indent(indent);
-      printf("  expr.int_val = %d\n", node->expr.int_val);
+      NODE_PRINTF("  expr.type = ExprInt\n");
+      NODE_PRINTF("  expr.int_val = %d\n", node->expr.int_val);
       break;
     case ExprVar:
-      print_indent(indent);
-      printf("  expr.type = ExprVar\n");
-      print_indent(indent);
-      printf("  expr.var_name = %s\n", node->expr.var_name);
+      NODE_PRINTF("  expr.type = ExprVar\n");
+      NODE_PRINTF("  expr.var_name = %s\n", node->expr.var_name);
       break;
     default:
-      print_indent(indent);
-      printf("?\n");
+      NODE_PRINTF("?\n");
       break;
     }
+    break;
+  case NodeIf:
+    NODE_PRINTF("  NodeType type = NodeIf\n");
+    NODE_PRINTF("  if_stmt.condition = ");
+    node_print(node->if_stmt.condition, indent + 2, 0);
+    if(node->if_stmt.stmts) {
+      NODE_PRINTF("  if_stmt.stmts = {\n");
+      for(size_t i = 0; i < node->if_stmt.stmts_count; i++) {
+        node_print(node->if_stmt.stmts[i], indent + 4, 1);
+      }
+      NODE_PRINTF("  }\n");
+    } else {
+      NODE_PRINTF("  if_stmt.stmts = (null)\n");
+    }
+    NODE_PRINTF("  if_stmt.stmts_count = %zu\n", node->if_stmt.stmts_count);
+    if(node->if_stmt.else_stmts) {
+      NODE_PRINTF("  if_stmt.else_stmts = {\n");
+      for(size_t i = 0; i < node->if_stmt.else_stmts_count; i++) {
+        node_print(node->if_stmt.else_stmts[i], indent + 4, 1);
+      }
+      NODE_PRINTF("  }\n");
+    } else {
+      NODE_PRINTF("  if_stmt.else_stmts = (null)\n");
+    }
+    NODE_PRINTF("  if_stmt.else_stmts_count = %zu\n", node->if_stmt.else_stmts_count);
     break;
   default:
     print_indent(indent);

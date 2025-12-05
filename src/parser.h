@@ -4,13 +4,28 @@
 
 #include "tokeniser.h"
 
-typedef enum { NodeProgram, NodeVarDecl, NodeVarAssign, NodeExpr } NodeType;
+typedef enum { NodeProgram,
+               NodeVarDecl,
+               NodeVarAssign,
+               NodeExpr,
+               NodeIf } NodeType;
 
-typedef enum { VarInteger, VarReal, VarBoolean, VarCharacter } VarType;
+typedef enum { VarInteger,
+               VarReal,
+               VarBoolean,
+               VarCharacter } VarType;
 
-typedef enum { ExprInt, ExprVar, ExprOp } ExprType;
+typedef enum { ExprInt,
+               ExprVar,
+               ExprOp } ExprType;
 
-typedef enum { OpAdd, OpSubtract, OpDivide, OpMultiply, OpExponent, OpModulo, OpIntDiv } Op;
+typedef enum { OpAdd,
+               OpSubtract,
+               OpDivide,
+               OpMultiply,
+               OpExponent,
+               OpModulo,
+               OpIntDiv } Op;
 
 typedef struct ASTNode {
   NodeType type;
@@ -47,6 +62,15 @@ typedef struct ASTNode {
         } op;
       };
     } expr;
+
+    // If statement
+    struct {
+      struct ASTNode *condition;
+      struct ASTNode **stmts;
+      size_t stmts_count;
+      struct ASTNode **else_stmts;
+      size_t else_stmts_count;
+    } if_stmt;
   };
 } ASTNode;
 
