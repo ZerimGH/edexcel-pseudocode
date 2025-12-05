@@ -6,6 +6,8 @@ DONE:
     -<type> <id> variable declaration syntax
     -SET <id> TO <value> syntax
     -SET <id> TO <expression> syntax
+    -IF <expression> THEN <command> END IF syntax
+    -IF <expression> THEN <command> ELSE <command> END IF syntax
   
 
 DOING:
@@ -19,8 +21,6 @@ TODO:
     -SET Array[Index] TO <value> syntax
     -SET Array TO [<value>, ...] syntax
     -SET Array[RowIndex, ColumnIndex] TO <value> syntax
-    -IF <expression> THEN <command> END IF syntax
-    -IF <expression> THEN <command> ELSE <command> END IF syntax
     -WHILE <condition> DO <command> END WHILE syntax
     -REPEAT <command> UNTIL <expression> syntax
     -REPEAT <expression> TIMES <command> END REPEAT syntax
