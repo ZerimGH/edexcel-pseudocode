@@ -217,7 +217,7 @@ static int is_ident_char(char c) {
 
 // Try to create a token of an identifier from a string
 static Token *tokenise_ident(char *src) {
-  // Identifiers are sequences of letters, digits and ‘_’, 
+  // Identifiers are sequences of letters, digits and ‘_’,
   // starting with a letter, for example: MyValue, myValue, My_Value, Counter2
   if(!src || *src == '\0' || isspace((unsigned char)*src)) return NULL;
   if(!isalpha((unsigned char)*src))
@@ -290,7 +290,7 @@ static Token *tokenise_real_lit(char *src) {
 
   // If no dot, its not a valid real lit
   if(dot == 0) return NULL;
-  
+
   // Handle something like -.0
   if(negative && dot == 1) return NULL;
 
@@ -391,8 +391,8 @@ Tokeniser *tokenise(char *src) {
       if(*read == '\n') {
         char_no = 1;
         line_no++;
-      }
-      else char_no += 1;
+      } else
+        char_no += 1;
       read++;
     }
     if(!*read) break;
@@ -452,11 +452,11 @@ err:
 // Helper function to convert token type to string
 static const char *token_type_to_str(TokenType t) {
   static const char *token_type_strings[] = {
-      "TokenInteger",  "TokenReal",   "TokenBoolean", "TokenCharacter",  "TokenArray",    "TokenString",      "TokenConst",         "TokenSet",          "TokenTo",         "TokenIf",
-      "TokenThen",     "TokenElse",   "TokenEnd",     "TokenWhile",      "TokenDo",       "TokenRepeat",      "TokenUntil",         "TokenTimes",        "TokenReceive",    "TokenSend",
-      "TokenFrom",     "TokenRead",   "TokenWrite",   "TokenProcedure",  "TokenFunction", "TokenReturn",      "TokenAdd",           "TokenSubtract",     "TokenDivide",     "TokenMultiply",
-      "TokenExponent", "TokenModulo", "TokenIntDiv",  "TokenEqualTo",    "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan",     "TokenLessThanEq", "TokenAnd",
-      "TokenOr",       "TokenNot",    "TokenAppend",  "TokenIdentifier", "TokenIntLit",   "TokenRealLit",     "TokenBooleanLit",    "TokenCharacterLit", "TokenStringLit"};
+      "TokenInteger", "TokenReal", "TokenBoolean", "TokenCharacter", "TokenArray", "TokenString", "TokenConst", "TokenSet", "TokenTo", "TokenIf",
+      "TokenThen", "TokenElse", "TokenEnd", "TokenWhile", "TokenDo", "TokenRepeat", "TokenUntil", "TokenTimes", "TokenReceive", "TokenSend",
+      "TokenFrom", "TokenRead", "TokenWrite", "TokenProcedure", "TokenFunction", "TokenReturn", "TokenAdd", "TokenSubtract", "TokenDivide", "TokenMultiply",
+      "TokenExponent", "TokenModulo", "TokenIntDiv", "TokenEqualTo", "TokenNEqualTo", "TokenGreaterThan", "TokenGreaterThanEq", "TokenLessThan", "TokenLessThanEq", "TokenAnd",
+      "TokenOr", "TokenNot", "TokenAppend", "TokenIdentifier", "TokenIntLit", "TokenRealLit", "TokenBooleanLit", "TokenCharacterLit", "TokenStringLit"};
   if(t >= 0 && t < sizeof(token_type_strings) / sizeof(token_type_strings[0]))
     return token_type_strings[t];
   else
