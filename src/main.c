@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
     if(strcmp(argv[i], "--parse_only") == 0) parse_only = 1;
     if(strcmp(argv[i], "-P") == 0) parse_only = 1;
     if(strcmp(argv[i], "--compile") == 0) compile_py = 1;
-    if(strcmp(argv[i], "-c") == 0) compile_py= 1;
+    if(strcmp(argv[i], "-c") == 0) compile_py = 1;
   }
 
   if(help) {
