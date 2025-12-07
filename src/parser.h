@@ -27,7 +27,14 @@ typedef enum { OpAdd,
                OpMultiply,
                OpExponent,
                OpModulo,
-               OpIntDiv } Op;
+               OpIntDiv,
+               OpEqual,
+               OpNEqual,
+               OpGreaterThan,
+               OpGreaterThanEq,
+               OpLessThan,
+               OpLessThanEq,
+} Op;
 
 typedef struct ASTNode {
   NodeType type;

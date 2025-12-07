@@ -192,19 +192,19 @@ static ASTNode *parse_var_decl(Tokeniser *tokeniser) {
 // What are all tokens that can be in an expression
 
 #define VALUE_TYPES TokenIdentifier, TokenIntLit
-#define OPERATOR_TYPES TokenAdd, TokenSubtract, TokenDivide, TokenMultiply, TokenExponent, TokenModulo, TokenIntDiv
-#define OPERATOR_PRECEDENCES 1, 1, 2, 2, 3, 2, 2
-#define OPERATOR_OPS OpAdd, OpSubtract, OpDivide, OpMultiply, OpExponent, OpModulo, OpIntDiv
+#define OPERATOR_TOKS TokenAdd, TokenSubtract, TokenDivide, TokenMultiply, TokenExponent, TokenModulo, TokenIntDiv, TokenEqualTo, TokenNEqualTo, TokenGreaterThan, TokenGreaterThanEq, TokenLessThan, TokenLessThanEq
+#define OPERATOR_PRECEDENCES 1, 1, 2, 2, 3, 2, 2, 0, 0, 0, 0, 0, 0
+#define OPERATOR_OPS OpAdd, OpSubtract, OpDivide, OpMultiply, OpExponent, OpModulo, OpIntDiv, OpEqual, OpNEqual, OpGreaterThan, OpGreaterThanEq, OpLessThan, OpLessThanEq
 
 static Token *consume_expr_tok(Tokeniser *tokeniser) {
   // Stupid hack
-  TokenType toks[] = {VALUE_TYPES, OPERATOR_TYPES};
+  TokenType toks[] = {VALUE_TYPES, OPERATOR_TOKS};
   size_t num = sizeof(toks) / sizeof(toks[0]);
-  return tokeniser_expect(tokeniser, num, VALUE_TYPES, OPERATOR_TYPES);
+  return tokeniser_expect(tokeniser, num, VALUE_TYPES, OPERATOR_TOKS);
 }
 
 static int is_op_tok(Token *tok) {
-  TokenType op_toks[] = {OPERATOR_TYPES};
+  TokenType op_toks[] = {OPERATOR_TOKS};
   for(size_t i = 0; i < sizeof(op_toks) / sizeof(op_toks[0]); i++) {
     if(tok->type == op_toks[i]) return 1;
   }
@@ -220,7 +220,7 @@ static int is_value_tok(Token *tok) {
 }
 
 static int token_precedence(Token *tok) {
-  TokenType op_toks[] = {OPERATOR_TYPES};
+  TokenType op_toks[] = {OPERATOR_TOKS};
   int op_prec[] = {OPERATOR_PRECEDENCES};
   for(size_t i = 0; i < sizeof(op_toks) / sizeof(op_toks[0]); i++) {
     if(tok->type == op_toks[i]) return op_prec[i];
@@ -229,7 +229,7 @@ static int token_precedence(Token *tok) {
 }
 
 static Op get_expr_op_from_token(Token *tok) {
-  TokenType op_toks[] = {OPERATOR_TYPES};
+  TokenType op_toks[] = {OPERATOR_TOKS};
   Op ops[] = {OPERATOR_OPS};
   for(size_t i = 0; i < sizeof(op_toks) / sizeof(op_toks[0]); i++) {
     if(tok->type == op_toks[i]) return ops[i];
@@ -693,8 +693,8 @@ static ASTNode *parse_if(Tokeniser *tokeniser) {
   }
 
   ASTNode *cond = NULL;
-  ASTNode *if_block;
-  ASTNode *else_block;
+  ASTNode *if_block = NULL;
+  ASTNode *else_block = NULL;
 
   cond = parse_expr(tokeniser);
   if(!cond) {
@@ -779,14 +779,14 @@ static ASTNode *parse_send(Tokeniser *tokeniser) {
   if(!id_tok) {
     PERROR("Expected device identifier.\n");
     PERROR_LOC
-    node_destroy(&expr); 
+    node_destroy(&expr);
     return NULL;
   }
 
   char *device_name = strdup(id_tok->value);
-  if(!device_name) { 
+  if(!device_name) {
     PERROR("strdup() failed.\n");
-    node_destroy(&expr); 
+    node_destroy(&expr);
     return NULL;
   }
 
@@ -801,7 +801,6 @@ static ASTNode *parse_send(Tokeniser *tokeniser) {
   node->send_stmt.device_name = device_name;
   return node;
 }
-
 
 // Parse a statement
 static ASTNode *parse_statement(Tokeniser *tokeniser) {

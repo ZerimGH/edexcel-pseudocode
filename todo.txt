@@ -8,6 +8,7 @@ DONE:
     -SET <id> TO <expression> syntax
     -IF <expression> THEN <command> END IF syntax
     -IF <expression> THEN <command> ELSE <command> END IF syntax
+    -SEND <expression> TO <device> syntax
   
 
 DOING:
@@ -27,7 +28,6 @@ TODO:
     -FOR <id> FROM <expression> TO <expression> STEP <expression> DO <command>
        END FOR syntax
     -FOR EACH <id> FROM <expression> DO <command> END FOREACH
-    -SEND <expression> TO <device> syntax
     -PROCEDURE <id> (<parameter>, ...) BEGIN PROCEDURE <command> END PROCEDURE
        syntax 
     -FUNCTION <id> (<parameter>, ...) BEGIN PROCEDURE <command> RETURN
