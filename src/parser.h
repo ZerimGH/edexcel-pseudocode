@@ -10,6 +10,7 @@ typedef enum { NodeProgram,
                NodeExpr,
                NodeBlock,
                NodeIf,
+               NodeWhile,
                NodeSend } NodeType;
 
 typedef enum { VarInteger,
@@ -84,6 +85,12 @@ typedef struct ASTNode {
       struct ASTNode *if_block;
       struct ASTNode *else_block;
     } if_stmt;
+
+    // While statement
+    struct {
+      struct ASTNode *condition;
+      struct ASTNode *while_block;
+    } while_stmt;
 
     // Send statement
     struct {

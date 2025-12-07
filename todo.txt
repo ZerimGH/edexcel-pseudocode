@@ -9,11 +9,13 @@ DONE:
     -IF <expression> THEN <command> END IF syntax
     -IF <expression> THEN <command> ELSE <command> END IF syntax
     -SEND <expression> TO <device> syntax
+    -WHILE <condition> DO <command> END WHILE syntax
   
 
 DOING:
   -AST interpretation
   -compilation to PYTHON(im too lazy for C)
+  parse:
 
 TODO:
   -compilation to C (im too lazy for assembly)
@@ -22,7 +24,6 @@ TODO:
     -SET Array[Index] TO <value> syntax
     -SET Array TO [<value>, ...] syntax
     -SET Array[RowIndex, ColumnIndex] TO <value> syntax
-    -WHILE <condition> DO <command> END WHILE syntax
     -REPEAT <command> UNTIL <expression> syntax
     -REPEAT <expression> TIMES <command> END REPEAT syntax
     -FOR <id> FROM <expression> TO <expression> DO <command> END FOR syntax

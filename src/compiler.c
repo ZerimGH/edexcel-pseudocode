@@ -131,7 +131,26 @@ int compile_expr(ASTNode *node, Compiler *c) {
     case OpExponent:
       op = "^";
       break;
-    default:
+    case OpEqual:
+      op = "==";
+      break;
+    case OpNEqual:
+      op = "!=";
+      break;
+    case OpGreaterThan:
+      op = ">";
+      break;
+    case OpGreaterThanEq:
+      op = ">=";
+      break;
+    case OpLessThan:
+      op = "<";
+      break;
+    case OpLessThanEq:
+      op = "<=";
+      break;
+    default :
+      PERROR("Unknown operation %d\n", node->expr.op.op);
       return 1;
     }
 
@@ -168,6 +187,23 @@ int compile_if(ASTNode *node, Compiler *c) {
       PERROR("Failed to compile else statement block.\n");
       return 1;
     }
+  }
+
+  return 0;
+}
+
+int compile_while(ASTNode *node, Compiler *c) {
+  fprintf(c->out_file, "while");
+  int expr_status = compile_node(node->while_stmt.condition, c);
+  if(expr_status) {
+    PERROR("Failed to compile while statement condition.\n");
+    return 1;
+  }
+
+  int block_status = compile_node(node->while_stmt.while_block, c);
+  if(block_status) {
+    PERROR("Failed to compile while statement block.\n");
+    return 1;
   }
 
   return 0;
@@ -214,6 +250,9 @@ int compile_node(ASTNode *node, Compiler *c) {
     break;
   case NodeIf:
     status = compile_if(node, c);
+    break;
+  case NodeWhile:
+    status = compile_while(node, c);
     break;
   case NodeSend:
     status = compile_send(node, c);

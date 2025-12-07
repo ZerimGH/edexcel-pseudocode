@@ -88,6 +88,10 @@ static void node_destroy(ASTNode **node) {
     node_destroy(&n->if_stmt.if_block);
     node_destroy(&n->if_stmt.else_block);
     break;
+  case NodeWhile:
+    node_destroy(&n->while_stmt.condition);
+    node_destroy(&n->while_stmt.while_block);
+    break;
   case NodeBlock:
     if(n->block.statements) {
       for(size_t i = 0; i < n->block.count; i++) {
@@ -139,13 +143,10 @@ static NodeType detect_type(Tokeniser *tokeniser) {
   Token *token = tokeniser_top(tokeniser);
   if(!token) return -1;
 
-  // If it starts with a variable type, its a variable declaration
   if(is_var_type(token->type)) return NodeVarDecl;
-  // If it starts with SET, its a variable asssignment
   if(token->type == TokenSet) return NodeVarAssign;
-  // If it starts with IF, its an if statement
   if(token->type == TokenIf) return NodeIf;
-  // If it starts with SEND, its a send statement
+  if(token->type == TokenWhile) return NodeWhile;
   if(token->type == TokenSend) return NodeSend;
 
   // Couldn't detect type
@@ -751,6 +752,63 @@ err:
   return NULL;
 }
 
+// Parse a while loop
+static ASTNode *parse_while(Tokeniser *tokeniser) {
+  if(!tokeniser) return NULL;
+
+  Token *while_tok = tokeniser_expect(tokeniser, 1, TokenWhile);
+  if(!while_tok) {
+    PERROR("Expected WHILE\n");
+    PERROR_LOC
+    return NULL;
+  }
+
+  ASTNode *cond = NULL;
+  ASTNode *while_block = NULL;
+
+  cond = parse_expr(tokeniser);
+  if(!cond) {
+    PERROR("Failed to parse condition.\n");
+    return NULL;
+  }
+
+  if(!tokeniser_expect(tokeniser, 1, TokenDo)) {
+    PERROR("Expected DO\n");
+    PERROR_LOC
+    goto err;
+  }
+
+  while_block = parse_until(tokeniser, 1, TokenEnd);
+  if(!while_block) {
+    PERROR("Failed to parse WHILE statements.\n");
+    goto err;
+  }
+
+  if(!tokeniser_expect(tokeniser, 1, TokenEnd) ||
+     !tokeniser_expect(tokeniser, 1, TokenWhile)) {
+    PERROR("Expected END WHILE\n");
+    PERROR_LOC
+    goto err;
+  }
+
+  ASTNode *node = node_create(NodeWhile);
+  if(!node) {
+    PERROR("Failed to create node.\n");
+    goto err;
+  }
+
+  node->while_stmt.condition = cond;
+  node->while_stmt.while_block = while_block;
+
+  return node;
+
+err:
+  node_destroy(&cond);
+  node_destroy(&while_block);
+
+  return NULL;
+}
+
 // Parse a SEND statement
 static ASTNode *parse_send(Tokeniser *tokeniser) {
   if(!tokeniser) return NULL;
@@ -819,6 +877,8 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
     return parse_var_assign(tokeniser);
   case NodeIf:
     return parse_if(tokeniser);
+  case NodeWhile:
+    return parse_while(tokeniser);
   case NodeSend:
     return parse_send(tokeniser);
   default:
@@ -972,6 +1032,13 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
     node_print(node->if_stmt.if_block, indent + 2, 0);
     NODE_PRINTF("  if_stmt.else_block = ");
     node_print(node->if_stmt.else_block, indent + 2, 0);
+    break;
+  case NodeWhile:
+    NODE_PRINTF("  NodeType type = NodeWhile\n");
+    NODE_PRINTF("  while_stmt.condition = ");
+    node_print(node->while_stmt.condition, indent + 2, 0);
+    NODE_PRINTF("  while_stmt.while_block = ");
+    node_print(node->while_stmt.while_block, indent + 2, 0);
     break;
   case NodeBlock:
     NODE_PRINTF("  NodeType type = NodeBlock\n");
