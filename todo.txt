@@ -12,9 +12,9 @@ DONE:
 
 DOING:
   -AST interpretation
+  -compilation to C (im too lazy for assembly)
 
 TODO:
-  -compilation to C (im too lazy for assembly)
   -figure out file handling syntax
   parse:
     -SET Array[Index] TO <value> syntax
