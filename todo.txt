@@ -11,10 +11,9 @@ DONE:
   
 
 DOING:
-  -
+  -AST interpretation
 
 TODO:
-  -AST interpretation
   -compilation to C (im too lazy for assembly)
   -figure out file handling syntax
   parse:
