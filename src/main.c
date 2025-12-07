@@ -68,7 +68,7 @@ void print_help(char *bin_path) {
   printf("-T, --tokenise_only     Tokenise only; do not parse, compile, or execute\n");
   printf("-p, --parser_debug      Print a debug view of the parser after parsing\n");
   printf("-P, --parse_only        Tokenise and parse only; do not compile or execute\n");
-  printf("-c, --compile           Compile to C instead of executing\n");
+  printf("-c, --compile           Compile to Python instead of executing\n");
   printf("Note: Combining multiple short flags like -Tt is not supported.\n");
 }
 
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
   int tok_only = 0;
   int parse_debug = 0;
   int parse_only = 0;
-  int compile_c = 0;
+  int compile_py = 0;
   for(int i = 1; i < argc - 1; i++) {
     if(strcmp(argv[i], "--help") == 0) help = 1;
     if(strcmp(argv[i], "--tokeniser_debug") == 0) tok_debug = 1;
@@ -97,8 +97,8 @@ int main(int argc, char **argv) {
     if(strcmp(argv[i], "-p") == 0) parse_debug = 1;
     if(strcmp(argv[i], "--parse_only") == 0) parse_only = 1;
     if(strcmp(argv[i], "-P") == 0) parse_only = 1;
-    if(strcmp(argv[i], "--compile") == 0) compile_c = 1;
-    if(strcmp(argv[i], "-c") == 0) compile_c= 1;
+    if(strcmp(argv[i], "--compile") == 0) compile_py = 1;
+    if(strcmp(argv[i], "-c") == 0) compile_py= 1;
   }
 
   if(help) {
@@ -149,9 +149,17 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if(compile_c) {
+  if(compile_py) {
     // Compile AST
-    int compile_status = compile(parser, stdout);
+    FILE *out_file = fopen("./out.py", "w");
+    if(!out_file) {
+      PERROR("Couldn't open output file for writing.\n");
+      parser_destroy(&parser);
+      return 1;
+    }
+
+    int compile_status = compile(parser, out_file);
+    fclose(out_file);
     parser_destroy(&parser);
     if(compile_status) {
       PERROR("Compilation failed.\n");

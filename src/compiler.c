@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include "def.h"
 #include <stdio.h>
+#include <string.h>
 
 int compile_node(ASTNode *node, Compiler *c);
 
@@ -10,7 +11,7 @@ static void indent(Compiler *c) {
 }
 
 int compile_program(ASTNode *node, Compiler *c) {
-  fprintf(c->out_file, "int main(void)");
+  fprintf(c->out_file, "if __name__ == \"__main__\"");
   int block_status = compile_node(node->program.block, c);
   if(block_status) {
     PERROR("Failed to compile program's block.\n");
@@ -25,7 +26,8 @@ int compile_block(ASTNode *node, Compiler *c) {
     return 1;
   }
 
-  fprintf(c->out_file, " {\n");
+  fprintf(c->out_file, ":\n");
+
   c->indent++;
 
   for(size_t i = 0; i < node->block.count; i++) {
@@ -38,18 +40,16 @@ int compile_block(ASTNode *node, Compiler *c) {
   }
 
   c->indent--;
-  indent(c);
-  fprintf(c->out_file, "}\n");
 
   return 0;
 }
 
-static char *var_type_to_c(VarType t) {
+static char *var_type_to_py(VarType t) {
   switch(t) {
   case VarInteger:
     return "int";
   case VarBoolean:
-    return "int";
+    return "bool";
   case VarCharacter:
     return "char";
   case VarReal:
@@ -65,13 +65,13 @@ int compile_var_decl(ASTNode *node, Compiler *c) {
     return 1;
   }
 
-  char *ctype = var_type_to_c(node->var_decl.type);
-  if(!ctype) {
+  char *vtype = var_type_to_py(node->var_decl.type);
+  if(!vtype) {
     PERROR("Unknown type\n");
     return 1;
   }
 
-  fprintf(c->out_file, "%s %s;\n", ctype, node->var_decl.id);
+  fprintf(c->out_file, "%s: %s = None\n", node->var_decl.id, vtype);
   return 0;
 }
 
@@ -88,7 +88,7 @@ int compile_var_assign(ASTNode *node, Compiler *c) {
     return expr_status;
   }
 
-  fprintf(c->out_file, ";\n");
+  fprintf(c->out_file, "\n");
 
   return 0;
 }
@@ -162,7 +162,6 @@ int compile_if(ASTNode *node, Compiler *c) {
   }
 
   if(node->if_stmt.else_block) {
-    indent(c);
     fprintf(c->out_file, "else");
     int else_status = compile_node(node->if_stmt.else_block, c);
     if(else_status) {
@@ -171,6 +170,22 @@ int compile_if(ASTNode *node, Compiler *c) {
     }
   }
 
+  return 0;
+}
+
+int compile_send(ASTNode *node, Compiler *c) {
+  if(strcmp(node->send_stmt.device_name, "DISPLAY") != 0) {
+    PERROR("Only the DISPLAY device is supported for now.\n");
+    return 1;
+  }
+
+  fprintf(c->out_file, "print(");
+  int expr_status = compile_node(node->send_stmt.expr, c);
+  if(expr_status) {
+    PERROR("Failed to compile SEND expression.\n");
+    return 1;
+  }
+  fprintf(c->out_file, ")\n");
   return 0;
 }
 
@@ -199,6 +214,9 @@ int compile_node(ASTNode *node, Compiler *c) {
     break;
   case NodeIf:
     status = compile_if(node, c);
+    break;
+  case NodeSend:
+    status = compile_send(node, c);
     break;
   default:
     PERROR("Unimplemented node type: %d\n", node->type);
