@@ -1,6 +1,7 @@
 #include "def.h"
 #include "parser.h"
 #include "tokeniser.h"
+#include "interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -143,7 +144,15 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  // Interpret AST
+  Interpreter *interpreter = interpret(parser);
   parser_destroy(&parser);
+  if(!interpreter) {
+    PERROR("Failed to interpret.\n");
+    return 1;
+  }
+
+  interpreter_destroy(&interpreter);
 
   return 0;
 }
