@@ -56,11 +56,7 @@ static void node_destroy(ASTNode **node) {
   if(!n) return;
   switch(n->type) {
   case NodeProgram:
-    if(n->program.nodes) {
-      for(size_t i = 0; i < n->program.count; i++) {
-        node_destroy(&n->program.nodes[i]);
-      }
-    }
+    node_destroy(&n->program.block);
     break;
   case NodeVarDecl:
     if(n->var_decl.id) free(n->var_decl.id);
@@ -77,6 +73,7 @@ static void node_destroy(ASTNode **node) {
       break;
     case ExprVar:
       if(n->expr.var_name) free(n->expr.var_name);
+      n->expr.var_name = NULL;
       break;
     case ExprInt:
       // Nothing to free
@@ -88,19 +85,17 @@ static void node_destroy(ASTNode **node) {
     break;
   case NodeIf:
     node_destroy(&n->if_stmt.condition);
-    if(n->if_stmt.stmts) {
-      for(size_t i = 0; i < n->if_stmt.stmts_count; i++) {
-        node_destroy(&n->if_stmt.stmts[i]);
+    node_destroy(&n->if_stmt.if_block);
+    node_destroy(&n->if_stmt.else_block);
+    break;
+  case NodeBlock:
+    if(n->block.statements) {
+      for(size_t i = 0; i < n->block.count; i++) {
+         node_destroy(&n->block.statements[i]);
       }
-      free(n->if_stmt.stmts);
-      n->if_stmt.stmts = NULL;
-    }
-    if(n->if_stmt.else_stmts) {
-      for(size_t i = 0; i < n->if_stmt.else_stmts_count; i++) {
-        node_destroy(&n->if_stmt.else_stmts[i]);
-      }
-      free(n->if_stmt.else_stmts);
-      n->if_stmt.else_stmts = NULL;
+      free(n->block.statements);
+      n->block.statements = NULL;
+      n->block.count = 0; 
     }
     break;
   default:
@@ -113,23 +108,13 @@ static void node_destroy(ASTNode **node) {
 
 // Create a parser
 static Parser *parser_create(void) {
-  Parser *parser = calloc(1, sizeof(Parser));
+  Parser *parser = malloc(sizeof(Parser));
   if(!parser) {
     PERROR("calloc() failed.\n");
     return NULL;
   }
 
-  parser->alloced = 1024;
-  parser->count = 0;
-  parser->statements = malloc(sizeof(ASTNode *) * parser->alloced);
-  if(!parser->statements) {
-    PERROR("malloc() failed.\n");
-    free(parser);
-    return NULL;
-  }
-
   parser->root = NULL;
-  parser->status = 0;
 
   return parser;
 }
@@ -140,38 +125,8 @@ void parser_destroy(Parser **parser) {
   Parser *p = *parser;
   if(!p) return;
   node_destroy(&p->root);
-  if(p->statements) {
-    for(size_t i = 0; i < p->count; i++) {
-      node_destroy(&p->statements[i]);
-    }
-  }
   free(p);
   *parser = NULL;
-}
-
-void parser_append_statement(Parser *parser, ASTNode *statement) {
-  if(!parser || !statement) {
-    PERROR("Invalid arguments.\n");
-    return;
-  }
-  if(parser->status != 0) {
-    node_destroy(&statement);
-    return;
-  }
-
-  if(parser->count >= parser->alloced) {
-    parser->alloced *= 2;
-    ASTNode **new = realloc(parser->statements, sizeof(ASTNode *) * parser->alloced);
-    if(!new) {
-      PERROR("realloc() failed.\n");
-      parser->alloced /= 2;
-      parser->status = 1;
-      node_destroy(&statement);
-      return;
-    }
-    parser->statements = new;
-  }
-  parser->statements[parser->count++] = statement;
 }
 
 static NodeType detect_type(Tokeniser *tokeniser) {
@@ -339,6 +294,7 @@ static void token_queue_destroy(TokenQueue **queue) {
   q->toks = NULL;
   q->alloced = 0;
   q->count = 0;
+  free(q);
   *queue = NULL;
 }
 
@@ -640,20 +596,24 @@ static ASTNode *parse_var_assign(Tokeniser *tokeniser) {
 
 static ASTNode *parse_statement(Tokeniser *tokeniser);
 
-ASTNode **parse_until(Tokeniser *tokeniser, size_t *count, size_t n, ...) {
-  if(!count || !tokeniser) return NULL;
+ASTNode *parse_until(Tokeniser *tokeniser, size_t n, ...) {
+  if(!tokeniser) return NULL;
 
-  *count = 0;
   size_t allocated = 16;
+  size_t count = 0;
   ASTNode **out = malloc(sizeof(ASTNode *) * allocated);
   if(!out) return NULL;
 
   while(1) {
-    Token *tok = tokeniser_top(tokeniser);
-    if(!tok) {
-      PERROR("Unexpected end of token stream.\n");
-      goto err;
+    if(tokeniser_done(tokeniser)) {
+      if(n == 0) break;
+      else {
+        PERROR("Unexpected end of tokens.\n");
+        goto err;
+      }
     }
+
+    Token *tok = tokeniser_top(tokeniser);
 
     va_list args;
     va_start(args, n);
@@ -672,12 +632,13 @@ ASTNode **parse_until(Tokeniser *tokeniser, size_t *count, size_t n, ...) {
 
     ASTNode *statement = parse_statement(tokeniser);
     if(!statement) {
+      if(n == 0 && tokeniser_done(tokeniser)) break;
       PERROR("Failed to parse a statement.\n");
       PERROR_LOC
       goto err;
     }
 
-    if(*count >= allocated) {
+    if(count >= allocated) {
       allocated *= 2;
       ASTNode **new = realloc(out, sizeof(ASTNode *) * allocated);
       if(!new) {
@@ -688,18 +649,27 @@ ASTNode **parse_until(Tokeniser *tokeniser, size_t *count, size_t n, ...) {
       out = new;
     }
 
-    out[(*count)++] = statement;
+    out[count++] = statement;
   }
 
-  if(*count == 0) {
+  if(count == 0) {
     PERROR("Empty block\n");
     goto err;
   }
 
-  return out;
+  ASTNode *node = node_create(NodeBlock);
+  if(!node) {
+    PERROR("node_create() failed.\n");
+    goto err;
+  }
+
+  node->block.count = count;
+  node->block.statements = out;
+
+  return node;
 
 err:
-  for(size_t i = 0; i < *count; i++)
+  for(size_t i = 0; i < count; i++)
     node_destroy(&out[i]);
   free(out);
   return NULL;
@@ -716,10 +686,8 @@ static ASTNode *parse_if(Tokeniser *tokeniser) {
   }
 
   ASTNode *cond = NULL;
-  ASTNode **stmts = NULL;
-  size_t stmts_count = 0;
-  ASTNode **else_stmts = NULL;
-  size_t else_stmts_count = 0;
+  ASTNode *if_block;
+  ASTNode *else_block;
 
   cond = parse_expr(tokeniser);
   if(!cond) {
@@ -733,8 +701,8 @@ static ASTNode *parse_if(Tokeniser *tokeniser) {
     goto err;
   }
 
-  stmts = parse_until(tokeniser, &stmts_count, 2, TokenEnd, TokenElse);
-  if(!stmts) {
+  if_block = parse_until(tokeniser, 2, TokenEnd, TokenElse);
+  if(!if_block) {
     PERROR("Failed to parse IF statements.\n");
     goto err;
   }
@@ -742,8 +710,8 @@ static ASTNode *parse_if(Tokeniser *tokeniser) {
   Token *top = tokeniser_top(tokeniser);
   if(top->type == TokenElse) {
     tokeniser_expect(tokeniser, 1, TokenElse);
-    else_stmts = parse_until(tokeniser, &else_stmts_count, 1, TokenEnd);
-    if(!else_stmts) {
+    else_block = parse_until(tokeniser, 1, TokenEnd);
+    if(!else_block) {
       PERROR("Failed to parse ELSE statements.\n");
       goto err;
     }
@@ -763,25 +731,15 @@ static ASTNode *parse_if(Tokeniser *tokeniser) {
   }
 
   node->if_stmt.condition = cond;
-  node->if_stmt.stmts = stmts;
-  node->if_stmt.stmts_count = stmts_count;
-  node->if_stmt.else_stmts = else_stmts;
-  node->if_stmt.else_stmts_count = else_stmts_count;
+  node->if_stmt.if_block = if_block;
+  node->if_stmt.else_block = else_block;
 
   return node;
 
 err:
   node_destroy(&cond);
-
-  if(stmts) {
-    for(size_t i = 0; i < stmts_count; i++)
-      node_destroy(&stmts[i]);
-  }
-
-  if(else_stmts) {
-    for(size_t i = 0; i < else_stmts_count; i++)
-      node_destroy(&else_stmts[i]);
-  }
+  node_destroy(&if_block);
+  node_destroy(&else_block);
 
   return NULL;
 }
@@ -809,6 +767,25 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
   }
 }
 
+static ASTNode *parse_program(Tokeniser *tokeniser) {
+  if(!tokeniser) return NULL; 
+  ASTNode *block = parse_until(tokeniser, 0);
+  if(!block) {
+    PERROR("Failed to parse program.\n");
+    return NULL;
+  }
+
+  ASTNode *node = node_create(NodeProgram);
+  if(!node) {
+    PERROR("node_create() failed.\n");
+    node_destroy(&block);
+    return NULL;
+  }
+
+  node->program.block = block;
+  return node;
+}
+
 // Construct an AST from a tokeniser's output
 Parser *parse(Tokeniser *tokeniser) {
   if(!tokeniser || tokeniser->status != 0) {
@@ -823,37 +800,12 @@ Parser *parse(Tokeniser *tokeniser) {
     return NULL;
   }
 
-  // Parse statements until error or end
-  while(!tokeniser_done(tokeniser)) {
-    ASTNode *stmt = parse_statement(tokeniser);
-    if(!stmt) {
-      PERROR("Failed to parse a statement.\n");
-      parser_destroy(&parser);
-      return NULL;
-    }
-    parser_append_statement(parser, stmt);
-  }
-
-  // Check for error
-  if(parser->status != 0) {
-    PERROR("Failed to parse tokens.\n");
-    parser_destroy(&parser);
-    return NULL;
-  }
-
-  // Create root node
-  parser->root = node_create(NodeProgram);
+  parser->root = parse_program(tokeniser);
   if(!parser->root) {
-    PERROR("Failed to create root node.\n");
+    PERROR("Failed to parse program\n");
     parser_destroy(&parser);
     return NULL;
   }
-
-  // Move statements to root node
-  parser->root->program.nodes = parser->statements;
-  parser->statements = NULL;
-  parser->root->program.count = parser->count;
-  parser->count = 0;
 
   return parser;
 }
@@ -910,12 +862,8 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
   switch(node->type) {
   case NodeProgram:
     NODE_PRINTF("  NodeType type = NodeProgram\n");
-    NODE_PRINTF("  program.nodes = {\n");
-    for(size_t i = 0; i < node->program.count; i++) {
-      node_print(node->program.nodes[i], indent + 4, 1);
-    }
-    NODE_PRINTF("  }\n");
-    NODE_PRINTF("  program.count = %zu\n", node->program.count);
+    NODE_PRINTF("  program.block = ");
+    node_print(node->program.block, indent + 2, 0);
     break;
   case NodeVarDecl:
     NODE_PRINTF("  NodeType type = NodeVarDecl\n");
@@ -956,26 +904,23 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
     NODE_PRINTF("  NodeType type = NodeIf\n");
     NODE_PRINTF("  if_stmt.condition = ");
     node_print(node->if_stmt.condition, indent + 2, 0);
-    if(node->if_stmt.stmts) {
-      NODE_PRINTF("  if_stmt.stmts = {\n");
-      for(size_t i = 0; i < node->if_stmt.stmts_count; i++) {
-        node_print(node->if_stmt.stmts[i], indent + 4, 1);
-      }
+    NODE_PRINTF("  if_stmt.if_block = ");
+    node_print(node->if_stmt.if_block, indent + 2, 0);
+    NODE_PRINTF("  if_stmt.else_block = ");
+    node_print(node->if_stmt.else_block, indent + 2, 0);
+    break;
+  case NodeBlock:
+    NODE_PRINTF("  NodeType type = NodeBlock\n");
+    NODE_PRINTF("  block.count = %zu\n", node->block.count);
+    if(node->block.statements) {
+      NODE_PRINTF("  block.statements = {\n");
+      for(size_t i = 0; i < node->block.count; i++) {
+        node_print(node->block.statements[i], indent + 4, 1);
+      } 
       NODE_PRINTF("  }\n");
     } else {
-      NODE_PRINTF("  if_stmt.stmts = (null)\n");
+      NODE_PRINTF("  block.statements = (null)\n");
     }
-    NODE_PRINTF("  if_stmt.stmts_count = %zu\n", node->if_stmt.stmts_count);
-    if(node->if_stmt.else_stmts) {
-      NODE_PRINTF("  if_stmt.else_stmts = {\n");
-      for(size_t i = 0; i < node->if_stmt.else_stmts_count; i++) {
-        node_print(node->if_stmt.else_stmts[i], indent + 4, 1);
-      }
-      NODE_PRINTF("  }\n");
-    } else {
-      NODE_PRINTF("  if_stmt.else_stmts = (null)\n");
-    }
-    NODE_PRINTF("  if_stmt.else_stmts_count = %zu\n", node->if_stmt.else_stmts_count);
     break;
   default:
     print_indent(indent);
@@ -993,18 +938,6 @@ void parser_dump(Parser *parser) {
   }
 
   printf("(Parser) {\n");
-  if(parser->statements) {
-    printf("  ASTNode **statements = {\n");
-    for(size_t i = 0; i < parser->count; i++) {
-      node_print(parser->statements[i], 4, 1);
-    }
-    printf("  }\n");
-  } else {
-    printf("  ASTNode **statements = (null)\n");
-  }
-  printf("  size_t alloced = %zu\n", parser->alloced);
-  printf("  size_t count = %zu\n", parser->count);
-  printf("  int status = %d\n", parser->status);
   printf("  ASTNode *root = {\n");
   node_print(parser->root, 4, 1);
   printf("  }\n");

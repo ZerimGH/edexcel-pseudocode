@@ -8,6 +8,7 @@ typedef enum { NodeProgram,
                NodeVarDecl,
                NodeVarAssign,
                NodeExpr,
+               NodeBlock,
                NodeIf } NodeType;
 
 typedef enum { VarInteger,
@@ -32,9 +33,15 @@ typedef struct ASTNode {
   union {
     // A program
     struct {
-      struct ASTNode **nodes;
-      size_t count;
+      struct ASTNode *block;
     } program;
+
+    // A list of statements, in most other languages it would be a block of
+    // code
+    struct {
+      size_t count;
+      struct ASTNode **statements;
+    } block;
 
     // Variable declarations
     struct {
@@ -66,20 +73,13 @@ typedef struct ASTNode {
     // If statement
     struct {
       struct ASTNode *condition;
-      struct ASTNode **stmts;
-      size_t stmts_count;
-      struct ASTNode **else_stmts;
-      size_t else_stmts_count;
+      struct ASTNode *if_block;
+      struct ASTNode *else_block;
     } if_stmt;
   };
 } ASTNode;
 
 typedef struct {
-  ASTNode **statements;
-  size_t alloced;
-  size_t count;
-
-  int status;
   ASTNode *root;
 } Parser;
 
