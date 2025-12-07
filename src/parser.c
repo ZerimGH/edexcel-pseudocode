@@ -918,6 +918,10 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
   if(indent_head) {
     print_indent(indent);
   }
+  if(!node) {
+    printf("(null)\n");
+    return;
+  }
   printf("(ASTNode) {\n");
   switch(node->type) {
   case NodeProgram:
