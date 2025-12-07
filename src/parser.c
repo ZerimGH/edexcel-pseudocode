@@ -98,6 +98,11 @@ static void node_destroy(ASTNode **node) {
       n->block.count = 0;
     }
     break;
+  case NodeSend:
+    node_destroy(&n->send_stmt.expr);
+    if(n->send_stmt.device_name) free(n->send_stmt.device_name);
+    n->send_stmt.device_name = NULL;
+    break;
   default:
     PERROR("UNIMPLEMENTED NODE_DESTROY()!!!\n");
     break;
@@ -132,7 +137,6 @@ void parser_destroy(Parser **parser) {
 static NodeType detect_type(Tokeniser *tokeniser) {
   if(!tokeniser) return -1;
   Token *token = tokeniser_top(tokeniser);
-  ;
   if(!token) return -1;
 
   // If it starts with a variable type, its a variable declaration
@@ -141,6 +145,8 @@ static NodeType detect_type(Tokeniser *tokeniser) {
   if(token->type == TokenSet) return NodeVarAssign;
   // If it starts with IF, its an if statement
   if(token->type == TokenIf) return NodeIf;
+  // If it starts with SEND, its a send statement
+  if(token->type == TokenSend) return NodeSend;
 
   // Couldn't detect type
   return -1;
@@ -745,6 +751,58 @@ err:
   return NULL;
 }
 
+// Parse a SEND statement
+static ASTNode *parse_send(Tokeniser *tokeniser) {
+  if(!tokeniser) return NULL;
+  Token *send_tok = tokeniser_expect(tokeniser, 1, TokenSend);
+  if(!send_tok) {
+    PERROR("Expected SEND\n");
+    PERROR_LOC
+    return NULL;
+  }
+
+  ASTNode *expr = parse_expr(tokeniser);
+  if(!expr) {
+    PERROR("Failed to parse SEND statement's expression.\n");
+    return NULL;
+  }
+
+  Token *to_tok = tokeniser_expect(tokeniser, 1, TokenTo);
+  if(!to_tok) {
+    PERROR("Expected TO\n");
+    PERROR_LOC
+    node_destroy(&expr);
+    return NULL;
+  }
+
+  Token *id_tok = tokeniser_expect(tokeniser, 1, TokenIdentifier);
+  if(!id_tok) {
+    PERROR("Expected device identifier.\n");
+    PERROR_LOC
+    node_destroy(&expr); 
+    return NULL;
+  }
+
+  char *device_name = strdup(id_tok->value);
+  if(!device_name) { 
+    PERROR("strdup() failed.\n");
+    node_destroy(&expr); 
+    return NULL;
+  }
+
+  ASTNode *node = node_create(NodeSend);
+  if(!node) {
+    PERROR("node_create() failed.\n");
+    node_destroy(&expr);
+    return NULL;
+  }
+
+  node->send_stmt.expr = expr;
+  node->send_stmt.device_name = device_name;
+  return node;
+}
+
+
 // Parse a statement
 static ASTNode *parse_statement(Tokeniser *tokeniser) {
   // Detect the node type
@@ -762,6 +820,8 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
     return parse_var_assign(tokeniser);
   case NodeIf:
     return parse_if(tokeniser);
+  case NodeSend:
+    return parse_send(tokeniser);
   default:
     PERROR("Unimplemented node type %d\n", type);
     return NULL;
@@ -923,9 +983,14 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
       NODE_PRINTF("  block.statements = (null)\n");
     }
     break;
+  case NodeSend:
+    NODE_PRINTF("  NodeType type = NodeSend\n");
+    NODE_PRINTF("  send_stmt.expr = ");
+    node_print(node->send_stmt.expr, indent + 2, 0);
+    NODE_PRINTF("  send_stmt.device_name = \"%s\"\n", node->send_stmt.device_name);
+    break;
   default:
-    print_indent(indent);
-    printf("?\n");
+    NODE_PRINTF("?\n");
     break;
   }
   print_indent(indent);

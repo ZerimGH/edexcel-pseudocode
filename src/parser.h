@@ -9,7 +9,8 @@ typedef enum { NodeProgram,
                NodeVarAssign,
                NodeExpr,
                NodeBlock,
-               NodeIf } NodeType;
+               NodeIf,
+               NodeSend } NodeType;
 
 typedef enum { VarInteger,
                VarReal,
@@ -76,6 +77,12 @@ typedef struct ASTNode {
       struct ASTNode *if_block;
       struct ASTNode *else_block;
     } if_stmt;
+
+    // Send statement
+    struct {
+      struct ASTNode *expr;
+      char *device_name;
+    } send_stmt;
   };
 } ASTNode;
 
