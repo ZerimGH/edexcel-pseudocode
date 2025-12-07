@@ -65,9 +65,10 @@ void print_help(char *bin_path) {
   printf("Options:\n");
   printf("--help                  Show this help message\n");
   printf("-t, --tokeniser_debug   Print a debug view of the tokeniser after tokenisation\n");
-  printf("-T, --tokenise_only     Tokenise only; do not parse or execute\n");
+  printf("-T, --tokenise_only     Tokenise only; do not parse, compile, or execute\n");
   printf("-p, --parser_debug      Print a debug view of the parser after parsing\n");
-  printf("-P, --parse_only        Tokenise and parse only; do not execute\n");
+  printf("-P, --parse_only        Tokenise and parse only; do not compile or execute\n");
+  printf("-c, --compile           Compile to C instead of executing\n");
   printf("Note: Combining multiple short flags like -Tt is not supported.\n");
 }
 
@@ -85,6 +86,7 @@ int main(int argc, char **argv) {
   int tok_only = 0;
   int parse_debug = 0;
   int parse_only = 0;
+  int compile_c = 0;
   for(int i = 1; i < argc - 1; i++) {
     if(strcmp(argv[i], "--help") == 0) help = 1;
     if(strcmp(argv[i], "--tokeniser_debug") == 0) tok_debug = 1;
@@ -95,6 +97,8 @@ int main(int argc, char **argv) {
     if(strcmp(argv[i], "-p") == 0) parse_debug = 1;
     if(strcmp(argv[i], "--parse_only") == 0) parse_only = 1;
     if(strcmp(argv[i], "-P") == 0) parse_only = 1;
+    if(strcmp(argv[i], "--compile") == 0) compile_c = 1;
+    if(strcmp(argv[i], "-c") == 0) compile_c= 1;
   }
 
   if(help) {
@@ -145,24 +149,24 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  /*
-  // Interpret AST
-  Interpreter *interpreter = interpret(parser);
-  parser_destroy(&parser);
-  if(!interpreter) {
-    PERROR("Failed to interpret.\n");
-    return 1;
-  }
+  if(compile_c) {
+    // Compile AST
+    int compile_status = compile(parser, stdout);
+    parser_destroy(&parser);
+    if(compile_status) {
+      PERROR("Compilation failed.\n");
+      return 1;
+    }
+  } else {
+    // Interpret AST
+    Interpreter *interpreter = interpret(parser);
+    parser_destroy(&parser);
+    if(!interpreter) {
+      PERROR("Failed to interpret.\n");
+      return 1;
+    }
 
-  interpreter_destroy(&interpreter);
-  */
-
-  // Compile AST
-  int compile_status = compile(parser, stdout);
-  parser_destroy(&parser);
-  if(compile_status) {
-    PERROR("Compilation failed.\n");
-    return 1;
+    interpreter_destroy(&interpreter);
   }
 
   return 0;

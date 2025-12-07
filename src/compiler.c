@@ -163,7 +163,7 @@ int compile_if(ASTNode *node, Compiler *c) {
 
   if(node->if_stmt.else_block) {
     indent(c);
-    fprintf(c->out_file, "else ");
+    fprintf(c->out_file, "else");
     int else_status = compile_node(node->if_stmt.else_block, c);
     if(else_status) {
       PERROR("Failed to compile else statement block.\n");
