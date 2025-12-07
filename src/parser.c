@@ -91,11 +91,11 @@ static void node_destroy(ASTNode **node) {
   case NodeBlock:
     if(n->block.statements) {
       for(size_t i = 0; i < n->block.count; i++) {
-         node_destroy(&n->block.statements[i]);
+        node_destroy(&n->block.statements[i]);
       }
       free(n->block.statements);
       n->block.statements = NULL;
-      n->block.count = 0; 
+      n->block.count = 0;
     }
     break;
   default:
@@ -606,7 +606,8 @@ ASTNode *parse_until(Tokeniser *tokeniser, size_t n, ...) {
 
   while(1) {
     if(tokeniser_done(tokeniser)) {
-      if(n == 0) break;
+      if(n == 0)
+        break;
       else {
         PERROR("Unexpected end of tokens.\n");
         goto err;
@@ -768,7 +769,7 @@ static ASTNode *parse_statement(Tokeniser *tokeniser) {
 }
 
 static ASTNode *parse_program(Tokeniser *tokeniser) {
-  if(!tokeniser) return NULL; 
+  if(!tokeniser) return NULL;
   ASTNode *block = parse_until(tokeniser, 0);
   if(!block) {
     PERROR("Failed to parse program.\n");
@@ -916,7 +917,7 @@ static void node_print(ASTNode *node, size_t indent, int indent_head) {
       NODE_PRINTF("  block.statements = {\n");
       for(size_t i = 0; i < node->block.count; i++) {
         node_print(node->block.statements[i], indent + 4, 1);
-      } 
+      }
       NODE_PRINTF("  }\n");
     } else {
       NODE_PRINTF("  block.statements = (null)\n");

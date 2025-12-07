@@ -31,8 +31,8 @@ typedef struct State {
 } State;
 
 typedef struct {
-  State *state_glob; 
-  State *state_cur; 
+  State *state_glob;
+  State *state_cur;
 } Interpreter;
 
 // Function prototypes

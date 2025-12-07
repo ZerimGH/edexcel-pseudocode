@@ -1,9 +1,9 @@
 #include "interpreter.h"
+#include "def.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
-#include "def.h"
 
 // FRAME NODE IMPLEMENTATION
 // Create a frame node
@@ -14,10 +14,9 @@ static FrameNode *frame_node_create(char *id) {
     return NULL;
   }
 
-  f->var = (Variable) {
-    .type = -1,
-    .int_val = 0 
-  };
+  f->var = (Variable){
+      .type = -1,
+      .int_val = 0};
 
   f->id = strdup(id);
   if(!f->id) {
@@ -49,7 +48,7 @@ static void frame_node_destroy(FrameNode **node) {
 // FRAME IMPLEMENTATION
 // Create a frame
 static Frame *frame_create(void) {
-  Frame *f = malloc(sizeof(Frame));  
+  Frame *f = malloc(sizeof(Frame));
   if(!f) {
     PERROR("malloc() failed.\n");
     return NULL;
@@ -83,7 +82,7 @@ static inline uint32_t hash_str(const char *str) {
     hash = c + (hash << 6) + (hash << 16) - hash;
   }
 
-  return (uint32_t) hash;
+  return (uint32_t)hash;
 }
 
 // Insert a variable to a frame
@@ -95,7 +94,7 @@ static int frame_insert(Frame *frame, FrameNode *node) {
 
   uint32_t idx = hash_str(node->id) % NUM_BUCKETS;
 
-  // If bucket is empty, insert at start 
+  // If bucket is empty, insert at start
   FrameNode *n = frame->buckets[idx];
   FrameNode *p = NULL;
   if(!n) {
@@ -162,7 +161,7 @@ static Scope *scope_create(void) {
 
 // Destroy a scope
 static void scope_destroy(Scope **scope) {
-  if(!scope) return; 
+  if(!scope) return;
   Scope *s = *scope;
   if(!s) return;
   Scope *c = s;
@@ -180,7 +179,7 @@ static void scope_destroy(Scope **scope) {
 
 // Append a new scope to a scope
 static int scope_push_scope(Scope *scope) {
-  if(!scope) { 
+  if(!scope) {
     PERROR("NULL Scope passed!\n");
     return ERR_NULL_ARGS;
   }
@@ -215,7 +214,7 @@ static int scope_declare(Scope *scope, char *id, VarType type) {
     PERROR("Failed to initialise variable \"%s\".\n", id);
   }
 
-  int insert_status = frame_insert(frame, fn);  
+  int insert_status = frame_insert(frame, fn);
   if(insert_status) {
     PERROR("Failed to declare variable \"%s\": frame_insert() failed.\n", id);
     frame_node_destroy(&fn);
@@ -248,9 +247,9 @@ static State *state_create(void) {
   return state;
 }
 
-// Destroy a state 
+// Destroy a state
 static void state_destroy(State **state) {
-  if(!state) return; 
+  if(!state) return;
   State *s = *state;
   if(!s) return;
   State *t = s;
@@ -287,7 +286,7 @@ static int state_declare(State *state, char *id, VarType type) {
   if(!state->scope_cur) {
     PERROR("State is missing a scope!\n");
     return ERR_INTERP_MISSING_COMPONENT;
-  } 
+  }
 
   int status = scope_declare(state->scope_cur, id, type);
   if(status) {
@@ -319,17 +318,17 @@ static Interpreter *interpreter_create(void) {
 
 // Destroy an interpreter
 void interpreter_destroy(Interpreter **interpreter) {
-   if(!interpreter) return;
-   Interpreter *i = *interpreter;
-   if(!i) return;
-   state_destroy(&i->state_glob);
-   free(i);
-   *interpreter = NULL;
+  if(!interpreter) return;
+  Interpreter *i = *interpreter;
+  if(!i) return;
+  state_destroy(&i->state_glob);
+  free(i);
+  *interpreter = NULL;
 }
 
 // Push a new scope in the current state for the interpreter
 int interpreter_push_scope(Interpreter *interpreter) {
-  State *state = interpreter->state_cur;  
+  State *state = interpreter->state_cur;
   if(!state) {
     PERROR("Interpreter is missing a state!\n");
     return ERR_INTERP_MISSING_COMPONENT;
@@ -393,7 +392,7 @@ int interpret_block(Interpreter *interpreter, ASTNode *node) {
       PERROR("Failed to interpret statement index %zu.\n", i);
       return status;
     }
-  } 
+  }
 
   return ERR_OKAY;
 }
@@ -428,7 +427,7 @@ int interpret_node(Interpreter *interpreter, ASTNode *node) {
   if(!interpreter) {
     PERROR("NULL interpreter passed.\n");
     return ERR_NULL_ARGS;
-  } 
+  }
 
   if(!node) {
     PERROR("NULL node passed.\n");
@@ -437,21 +436,21 @@ int interpret_node(Interpreter *interpreter, ASTNode *node) {
 
   int status = 0;
   switch(node->type) {
-    case NodeProgram:
-      status = interpret_program(interpreter, node);
-      break;
-    case NodeBlock:
-      status = interpret_block(interpreter, node);
-      break;
-    case NodeVarDecl:
-      status = interpret_var_decl(interpreter, node);
-      break;
-    default: 
-      PERROR("Unknown node type %d\n", node->type);
-      return ERR_UNKNOWN_NODE;
+  case NodeProgram:
+    status = interpret_program(interpreter, node);
+    break;
+  case NodeBlock:
+    status = interpret_block(interpreter, node);
+    break;
+  case NodeVarDecl:
+    status = interpret_var_decl(interpreter, node);
+    break;
+  default:
+    PERROR("Unknown node type %d\n", node->type);
+    return ERR_UNKNOWN_NODE;
   }
 
-  return status; 
+  return status;
 }
 
 // Interpret a program

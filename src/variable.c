@@ -1,28 +1,28 @@
 #include "variable.h"
-#include <stdio.h>
 #include "def.h"
+#include <stdio.h>
 
 // Create a new variable with a type
 Variable var_new(VarType type) {
-  Variable v = (Variable) {0};
+  Variable v = (Variable){0};
   v.type = type;
   switch(type) {
-    case VarInteger:
-      v.int_val = 0;
-      break;
-    case VarReal:
-      v.real_val = 0.f;
-      break;
-    case VarBoolean:
-      v.boolean_val = 0;
-      break;
-    case VarCharacter:
-      v.character_val = 0;
-      break;
-    default:
-      PERROR("Invalid variable type %d\n", type);
-      v.type = -1;
-      return v;
+  case VarInteger:
+    v.int_val = 0;
+    break;
+  case VarReal:
+    v.real_val = 0.f;
+    break;
+  case VarBoolean:
+    v.boolean_val = 0;
+    break;
+  case VarCharacter:
+    v.character_val = 0;
+    break;
+  default:
+    PERROR("Invalid variable type %d\n", type);
+    v.type = -1;
+    return v;
   }
 
   return v;
@@ -56,5 +56,3 @@ int var_assign(Variable *a, Variable *b) {
   variable_destroy(a);
   *a = variable_copy(*b);
 }
-
-
