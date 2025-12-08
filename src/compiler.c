@@ -149,7 +149,7 @@ int compile_expr(ASTNode *node, Compiler *c) {
     case OpLessThanEq:
       op = "<=";
       break;
-    default :
+    default:
       PERROR("Unknown operation %d\n", node->expr.op.op);
       return 1;
     }
